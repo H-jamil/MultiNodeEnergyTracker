@@ -5,6 +5,7 @@ import threading
 from collections import defaultdict
 from datetime import datetime
 import time
+import statistics
 
 class EnergyMaster:
     def __init__(self, control_port: int, data_port: int):
@@ -29,9 +30,13 @@ class EnergyMaster:
     def control_listener(self):
         self.control_socket.listen(5)
         while self.running:
-            client_socket, addr = self.control_socket.accept()
-            node_id = client_socket.recv(1024).decode()
-            print(f"New node connected: {node_id} from {addr}")
+            try:
+                client_socket, addr = self.control_socket.accept()
+                node_id = client_socket.recv(1024).decode()
+                print(f"New node connected: {node_id} from {addr}")
+            except Exception as e:
+                if self.running:  # Only print error if not shutting down
+                    print(f"Control listener error: {e}")
 
     def handle_client_data(self, client_socket, addr):
         while self.running:
@@ -55,7 +60,8 @@ class EnergyMaster:
                     with self.nodes_lock:
                         self.nodes_data[json_data['node_id']].extend(json_data['measurements'])
             except Exception as e:
-                print(f"Error handling client data: {e}")
+                if self.running:  # Only print error if not shutting down
+                    print(f"Error handling client data: {e}")
                 break
         
         client_socket.close()
@@ -63,50 +69,21 @@ class EnergyMaster:
     def data_listener(self):
         self.data_socket.listen(5)
         while self.running:
-            client_socket, addr = self.data_socket.accept()
-            client_thread = threading.Thread(
-                target=self.handle_client_data,
-                args=(client_socket, addr)
-            )
-            self.client_threads.append(client_thread)
-            client_thread.start()
+            try:
+                client_socket, addr = self.data_socket.accept()
+                client_thread = threading.Thread(
+                    target=self.handle_client_data,
+                    args=(client_socket, addr)
+                )
+                self.client_threads.append(client_thread)
+                client_thread.start()
+            except Exception as e:
+                if self.running:  # Only print error if not shutting down
+                    print(f"Data listener error: {e}")
 
-    # def print_aggregated_data(self):
-    #     while self.running:
-    #         with self.nodes_lock:
-    #             if self.nodes_data:
-    #                 print("\nTimestamp            ", end="")
-    #                 for node_id in sorted(self.nodes_data.keys()):
-    #                     print(f"{node_id:>30}", end="")
-    #                 print("\n" + "-" * (30 * (len(self.nodes_data) + 1)))
-
-    #                 # Group measurements by timestamp
-    #                 timestamp_data = defaultdict(dict)
-    #                 for node_id, measurements in self.nodes_data.items():
-    #                     for m in measurements:
-    #                         timestamp_data[m['timestamp']][node_id] = m
-
-    #                 # Print sorted timestamps
-    #                 for timestamp in sorted(timestamp_data.keys()):
-    #                     time_str = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-    #                     print(f"{time_str:<20}", end="")
-                        
-    #                     for node_id in sorted(self.nodes_data.keys()):
-    #                         if node_id in timestamp_data[timestamp]:
-    #                             m = timestamp_data[timestamp][node_id]
-    #                             readings = f"{m['cpu_core']:.1f},{m['cpu_total']:.1f}"
-    #                             for gpu in m['gpu_readings']:
-    #                                 readings += f",{gpu:.1f}"
-    #                             print(f"{readings:>30}", end="")
-    #                         else:
-    #                             print(" " * 30, end="")
-    #                     print()
-
-    #                 # Clear processed data
-    #                 self.nodes_data.clear()
-            
-    #         time.sleep(2.0)
     def print_aggregated_data(self):
+        WINDOW_SIZE_MS = 100  # 100ms window size for aggregation
+        
         while self.running:
             with self.nodes_lock:
                 if self.nodes_data:
@@ -116,53 +93,56 @@ class EnergyMaster:
                         print(f"{node_id:>30}", end="")
                     print("\n" + "-" * (30 * (len(self.nodes_data) + 1)))
 
-                    # Group data by seconds first
-                    second_groups = defaultdict(lambda: defaultdict(list))
+                    # Create time-based buckets for each 100ms window
+                    time_windows = defaultdict(lambda: defaultdict(list))
                     
-                    # Collect all data grouped by seconds
+                    # Collect and organize data into time windows
                     for node_id, measurements in self.nodes_data.items():
                         for m in measurements:
-                            # Get second-level timestamp
-                            second_ts = int(m['timestamp'])
-                            second_groups[second_ts][node_id].append({
-                                'full_ts': m['timestamp'],
-                                'data': m
-                            })
+                            # Convert timestamp to milliseconds and round to nearest window
+                            ts_ms = int(float(m['timestamp']) * 1000)
+                            window_ts = (ts_ms // WINDOW_SIZE_MS) * WINDOW_SIZE_MS
+                            time_windows[window_ts][node_id].append(m)
 
-                    # Process each second
-                    for second_ts in sorted(second_groups.keys()):
-                        # Get base time string for this second
-                        base_time_str = datetime.fromtimestamp(second_ts).strftime('%Y-%m-%d %H:%M:%S')
+                    # Process each time window
+                    for window_ts in sorted(time_windows.keys()):
+                        base_time = datetime.fromtimestamp(window_ts / 1000)
+                        time_str = base_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+                        print(f"{time_str:<24}", end="")
                         
-                        # Get all measurements for this second
-                        second_data = second_groups[second_ts]
-                        
-                        # Find the maximum number of measurements in any node for this second
-                        max_measurements = max(len(measurements) for measurements in second_data.values())
-                        
-                        # Print all measurements for this second
-                        for i in range(max_measurements):
-                            print(f"{base_time_str:<24}", end="")
-                            
-                            for node_id in sorted(self.nodes_data.keys()):
-                                if node_id in second_data and i < len(second_data[node_id]):
-                                    m = second_data[node_id][i]['data']
-                                    readings = f"{m['cpu_core']:.1f},{m['cpu_total']:.1f}"
-                                    if 'gpu_readings' in m and m['gpu_readings']:
-                                        gpu_str = ','.join(f"{gpu:.1f}" for gpu in m['gpu_readings'])
+                        # Process each node's data within the window
+                        for node_id in sorted(self.nodes_data.keys()):
+                            if node_id in time_windows[window_ts]:
+                                measurements = time_windows[window_ts][node_id]
+                                
+                                # Aggregate measurements within the window
+                                avg_cpu_core = statistics.mean(m['cpu_core'] for m in measurements)
+                                avg_cpu_total = statistics.mean(m['cpu_total'] for m in measurements)
+                                
+                                readings = f"{avg_cpu_core:.1f},{avg_cpu_total:.1f}"
+                                
+                                # Handle GPU readings if present
+                                if any('gpu_readings' in m and m['gpu_readings'] for m in measurements):
+                                    gpu_readings = [m['gpu_readings'] for m in measurements 
+                                                  if 'gpu_readings' in m]
+                                    if gpu_readings:
+                                        avg_gpu = []
+                                        for gpu_idx in range(len(gpu_readings[0])):
+                                            gpu_values = [reading[gpu_idx] for reading in gpu_readings]
+                                            avg_gpu.append(statistics.mean(gpu_values))
+                                        gpu_str = ','.join(f"{gpu:.1f}" for gpu in avg_gpu)
                                         readings += f",{gpu_str}"
-                                    print(f"{readings:>30}", end="")
-                                else:
-                                    print(" " * 30, end="")
-                            print()
-                        
-                        # Add a blank line between seconds for better readability
+                                
+                                print(f"{readings:>30}", end="")
+                            else:
+                                print(" " * 30, end="")
                         print()
-
-                    # Clear processed data
+                    
+                    print()
                     self.nodes_data.clear()
             
             time.sleep(2.0)
+
     def shutdown(self):
         self.running = False
         self.control_socket.close()
