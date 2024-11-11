@@ -1,0 +1,459 @@
+    1  sudo apt update
+    2  sudo apt upgrade
+    3  sudo apt install -y wget build-essential linux-headers-$(uname -r)
+    4  sudo wget -q -O - https://www.beegfs.io/release/beegfs_7.4.5/gpg/GPG-KEY-beegfs | apt-key add -
+    5  sudo wget -q -O - https://www.beegfs.io/release/beegfs_7.4.5/gpg/GPG-KEY-beegfs |sudo  apt-key add -
+    6  clear
+    7  sudo wget https://www.beegfs.io/release/beegfs_7.4.5/dists/beegfs-jammy.list -O /etc/apt/sources.list.d/beegfs.list
+    8  sudo apt install apt-transport-https
+    9  sudo apt update
+   10  sudo apt install -y wget build-essential linux-headers-$(uname -r)
+   11  sudo apt install -y beegfs-mgmtd beegfs-meta beegfs-storage beegfs-utils
+   12  sudo mkdir -p /data/beegfs/mgmtd
+   13  sudo mkdir -p /data/beegfs/meta
+   14  sudo mkdir -p /data/beegfs/storage
+   15  sudo /opt/beegfs/sbin/beegfs-setup-mgmtd -p /data/beegfs/mgmtd
+   16  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   17  sudo /etc/hosts
+   18  sudo vim /etc/hosts
+   19  ping storage-1
+   20  clear
+   21  ip a
+   22  ip route
+   23  sudo firewall-cmd --zone=trusted --add-source=<your_subnet_cidr/netmask>
+   24  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+   25  sudo apt install iperf3
+   26  iperf3 -s
+   27  cleae
+   28  clear
+   29  vim update_bash.sh
+   30  chmod +x update_bash.sh
+   31  ./update_bash.sh
+   32  c
+   33  source .bashrc
+   34  c
+   35  sudo /opt/beegfs/sbin/beegfs-setup-meta -p /data/beegfs/meta -s 1 -m storage-1
+   36  sudo /opt/beegfs/sbin/beegfs-setup-storage -p /data/beegfs/storage -s 1 -i 1 -m storage-1
+   37  sudo systemctl start beegfs-mgmtd
+   38  sudo systemctl start beegfs-meta
+   39  sudo systemctl start beegfs-storage
+   40  sudo systemctl enable beegfs-mgmtd
+   41  sudo systemctl enable beegfs-meta
+   42  sudo systemctl enable beegfs-storage
+   43  sudo systemctl status beegfs-mgmtd
+   44  c
+   45  sudo vim /etc/beegfs/beegfs-meta.conf
+   46  sudo vim /etc/beegfs/beegfs-storage.conf
+   47  sudo systemctl start beegfs-meta
+   48  sudo systemctl start beegfs-storage
+   49  sudo systemctl enable beegfs-meta
+   50  sudo systemctl enable beegfs-storage
+   51  beegfs-ctl --listnodes --nodetype=management
+   52  sudo systemctl status beegfs-mgmtd
+   53  sudo systemctl status beegfs-meta.service
+   54  sudo systemctl status beegfs-storage.service
+   55  sudo systemctl status beegfs-mgmtd.service
+   56  sudo systemctl status beegfs-mgmtd
+   57  sudo systemctl status beegfs-storage
+   58  sudo systemctl status beegfs-meta.service
+   59  beegfs-ctl --listnodes --nodetype=management
+   60  c
+   61  sudo journalctl -u beegfs-mgmtd -n 50
+   62  sudo journalctl -u beegfs-stoarge -n 50
+   63  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   64  sudo vim /etc/beegfs/beegfs-meta.conf
+   65  sudo vim /etc/beegfs/beegfs-storage.conf
+   66  c
+   67  sudo systemctl restart beegfs-mgmtd
+   68  sudo systemctl restart beegfs-meta
+   69  sudo systemctl restart beegfs-storage
+   70  beegfs-ctl --listnodes --nodetype=management
+   71  clear
+   72  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   73  sudo systemctl restart beegfs-mgmtd
+   74  beegfs-ctl --listnodes --nodetype=management
+   75  c
+   76  sudo vim /etc/beegfs/beegfs-meta.conf
+   77  sudo vim /etc/beegfs/beegfs-storage.conf
+   78  sudo systemctl restart beegfs-mgmtd
+   79  sudo systemctl restart beegfs-meta
+   80  sudo systemctl restart beegfs-storage
+   81  sudo systemctl status beegfs-mgmtd
+   82  sudo systemctl status beegfs-meta.service
+   83  sudo systemctl status beegfs-storage.service
+   84  beegfs-ctl --listnodes --nodetype=management
+   85  c
+   86  sudo apt install netperf
+   87  sudo apt install netstat
+   88  sudo netstat -tulpn | grep beegfs
+   89  sudo ss -tulpn
+   90  clear
+   91  sudo firewall-cmd --permanent --add-port=8008/tcp  # Management
+   92  sudo firewall-cmd --permanent --add-port=8005/tcp  # Metadata
+   93  sudo firewall-cmd --permanent --add-port=8003/tcp  # Storage
+   94  sudo firewall-cmd --permanent --add-port=8004/tcp  # Storage Transfer
+   95  sudo firewall-cmd --permanent --add-port=8006/tcp  # Helperd
+   96  sudo firewall-cmd --reload
+   97  sudo firewall-cmd --list-all
+   98  beegfs-ctl --listnodes --nodetype=management
+   99  sudo vim /etc/beegfs/interfaces.conf
+  100  sudo firewall-cmd --reloadc
+  101  c
+  102  lsblk
+  103  c
+  104  clear
+  105  ssh-keygen -t rsa -b 4096
+  106  cat .ssh/id_rsa.pub
+  107  vim .ssh/authorized_keys
+  108  c
+  109  source .bashrc
+  110  c
+  111  dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
+  112  sudo dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
+  113  chown cc:cc /etc/beegfs/connauthfile
+  114  sudo chown cc:cc /etc/beegfs/connauthfile
+  115  sudo chmod 400 /etc/beegfs/connauthfile
+  116  scp /etc/beegfs/connauthfile cc@storage-2
+  117  scp /etc/beegfs/connauthfile cc@storage-3
+  118  scp /etc/beegfs/connauthfile cc@storage-2:~/
+  119  scp /etc/beegfs/connauthfile cc@storage-3:~/
+  120  cd /etc/beegfs/
+  121  sudo chown root:root /etc/beegfs/connauthfile
+  122  ls
+  123  ls -a
+  124  ll
+  125  cd /var/log
+  126  cat beegfs-mgmtd.log
+  127  cat beegfs-meta.log
+  128  cat beegfs-meta.log.old-1
+  129  cat beegfs-meta.log.old-2
+  130  cat beegfs-storage.log
+  131  cat beegfs-storage.log.old-1
+  132  cd
+  133  sudo ufw status
+  134  sudo journalctl -u beegfs-mgmtd -n 100
+  135  ip addr show
+  136  ping storage-2
+  137  ping storage-3
+  138  c
+  139  sudo firewall-cmd --list-all
+  140  cat /var/log/beegfs-meta.log.old-2
+  141  for service in beegfs-mgmtd beegfs-meta beegfs-storage; do     echo "Checking $service:";     sudo systemctl status $service; done
+  142  c
+  143  beegfs-ctl --listnodes --nodetype=metadata
+  144  sudo systemctl status beegfs-mgmtd
+  145  sudo ss -tulpn
+  146  sudo ss -tulpn | grep beegfs
+  147  beegfs-check-servers
+  148  beegfs-ctl --listnodes --nodetype=all --details
+  149  beegfs-ctl --getentryinfo /data/beegfs
+  150  cd /etc/beegfs/
+  151  cat beegfs-eventlistener.conf
+  152  cmsh
+  153  cat /var/log/beegfs-meta.log.old-2
+  154  cat /var/log/beegfs-meta.log.old-1
+  155  ip a
+  156  watch sudo ceph -s
+  157  c
+  158  watch sudo ceph -s
+  159  c
+  160  watch -n 1 'sudo ceph -s'
+  161  c
+  162  sudo ceph osd pool ls
+  163  sudo ceph osd pool get size
+  164  sudo ceph osd pool get cephfs.cephfs.meta size
+  165  sudo ceph osd pool get cephfs.cephfs.meta min_size
+  166  c
+  167  watch -n 1 'sudo ceph -s'
+  168  ls
+  169  sudo cp /etc/ceph/admin.secret ~/
+  170  sudo chown cc:cc ~/admin.secret
+  171  mv admin.secret admin.secret.tmp
+  172  sudo scp admin.secret.tmp  cc@compute-1:~/admin.secret
+  173  scp admin.secret.tmp  cc@compute-1:~/admin.secretc
+  174  scp admin.secret.tmp  cc@compute-2:~/admin.secret
+  175  scp ~/ceph.client.admin.keyring cc@compute-1:~/
+  176  scp ~/ceph.client.admin.keyring cc@compute-2:~/
+  177  ls
+  178  scp /etc/ceph/ceph.conf cc@compute-1:~/
+  179  scp /etc/ceph/ceph.conf cc@compute-2:~/
+  180  c
+  181  watch -n1 "sudo ceph -s"
+  182  lsblk
+  183  lsb_release -a
+  184  ip a
+  185  clear
+  186  ip a
+  187  sudo tee -a /etc/hosts << EOF
+  188  10.52.3.6 storage-1
+  189  10.52.0.165 storage-volume-2
+  190  10.52.1.64 storage-volume-3
+  191  EOF
+  192  cat /etc/hosts
+  193  o
+  194  sudo apt update
+  195  sudo apt install -y python3 python3-pip curl
+  196  clear
+  197  curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm
+  198  ls
+  199  cat update_bash.sh
+  200  scp update_bash.sh cc@storage-volume-3
+  201  scp update_bash.sh cc@storage-volume-3:~/
+  202  cd .ssh/
+  203  cat id_rsa.pub
+  204  scp update_bash.sh cc@storage-volume-3:~/
+  205  cd
+  206  scp update_bash.sh cc@storage-volume-3:~/
+  207  scp update_bash.sh cc@storage-volume-2:~/
+  208  c
+  209  chmod +x cephadm
+  210  sudo ./cephadm install
+  211  sudo ./cephadm add-repo --release quincy
+  212  sudo apt update
+  213  sudo apt install -y ceph-common
+  214  c
+  215  sudo cephadm bootstrap --mon-ip 10.52.3.6     --initial-dashboard-password "YourSecurePassword" \
+  216  c
+  217  sudo apt install docker.io
+  218  c
+  219  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname
+  220  sudo cat /etc/ceph/ceph.pub
+  221  c
+  222  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  223  sudo rm -rf /var/lib/ceph/
+  224  sudo rm -rf /var/log/ceph/
+  225  sudo rm -rf /etc/ceph/
+  226  sudo rm -rf /var/run/ceph/
+  227  sudo docker ps -a | grep ceph | awk '{print $1}' | xargs -r sudo docker rm -f
+  228  c
+  229  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa
+  230  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa --ssh-public-key /home/cc/.ssh/id_rsa.pub
+  231  c
+  232  sudo ceph -s
+  233  ssh cc@storage-volume-2 "hostname"
+  234  ssh cc@storage-volume-3 "hostname"
+  235  sudo ceph orch host add storage-volume-2 10.52.0.165
+  236  sudo ceph orch host add storage-volume-3 10.52.1.64
+  237  sudo ceph orch host ls
+  238  sudo ceph orch device ls
+  239  clear
+  240  sudo ceph orch device ls
+  241  sudo ceph orch host add storage-volume-3 10.52.1.64
+  242  sudo ceph orch host ls
+  243  sudo ceph orch device ls
+  244  c
+  245  sudo ceph orch host rescan storage-volume-3
+  246  sudo ceph orch device ls
+  247  sudo ceph orch ps --hostname storage-volume-3                                                                                     CCCCCCCC
+  248  sudo ceph orch host rescan storage-volume-3
+  249  c;
+  250  ssh cc@storage-volume-3 "hostname"
+  251  sudo ceph orch host rescan storage-volume-3
+  252  sudo ceph orch ps --hostname storage-volume-3
+  253  c
+  254  sudo ceph orch host rescan storage-volume-2
+  255  sudo ceph orch device ls
+  256  sudo ceph orch host rescan storage-volume-2
+  257  sudo ceph orch device ls
+  258  clear
+  259  sudo ceph orch device ls
+  260  sudo ceph orch host rescan storage-volume-2
+  261  sudo ceph orch device ls
+  262  sudo ceph orch host ls
+  263  sudo ceph orch host rm storage-volume-3
+  264  sudo ceph orch host drain storage-volume-3
+  265  sudo ceph orch host drain storage-volume-2
+  266  c
+  267  sudo ceph orch host rm storage-volume-3
+  268  sudo ceph orch host rm storage-volume-2
+  269  sudo ceph orch host drain storage-volume-2
+  270  sudo ceph orch host ls
+  271  c
+  272  sudo ceph -s
+  273  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  274  sudo cephadm rm-cluster --fsid $(sudo cephadm ls ) --force
+  275  c
+  276  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  277  sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4
+  278  sudo cephadm ls | grep -o '"fsid":"[^"]*'
+  279  sudo cephadm ls
+  280  c
+  281  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  282  sudo ceph fsid
+  283  c
+  284  sudo systemctl stop ceph.target
+  285  sudo systemctl disable ceph.target
+  286  sudo docker ps -a | grep ceph | awk '{print $1}' | xargs -r sudo docker rm -f
+  287  sudo rm -rf /var/lib/ceph/
+  288  sudo rm -rf /var/log/ceph/
+  289  sudo rm -rf /etc/ceph/
+  290  sudo rm -rf /var/run/ceph/
+  291  sudo rm -rf /usr/sbin/cephadm
+  292  sudo docker image prune -a --filter "label=io.ceph.daemon"
+  293  ls
+  294  sudo ./cephadm install
+  295  sudo ./cephadm add-repo --release quincy
+  296  sudo apt update
+  297  sudo apt install -y ceph-common
+  298  c
+  299  history | grep "bootstrap --mon-ip"
+  300  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa --ssh-public-key /home/cc/.ssh/id_rsa.pub
+  301  sudo ceph -s
+  302  c
+  303  sudo ceph orch host add storage-volume-2 10.52.0.165
+  304  sudo ceph orch host ls
+  305  sudo ceph orch device ls
+  306  c
+  307  sudo ceph orch apply osd --all-available-devices
+  308  sudo ceph orch ps
+  309  c
+  310  sudo ceph osd df
+  311  sudo ceph osd tree
+  312  sudo ceph osd status
+  313  c
+  314  sudo ceph mon stat
+  315  sudo ceph health detail
+  316  sudo ceph osd status
+  317  sudo ceph osd tree
+  318  sudo ceph mon stat
+  319  c
+  320  sudo ceph mgr stat
+  321  sudo ceph orch ls
+  322  sudo ceph orch ps
+  323  c
+  324  sudo ceph osd status
+  325  scp update_bash.sh
+  326  sudo vim /etc/hosts
+  327  scp update_bash.sh cc@storage-volume-1:~/
+  328  c
+  329  ls
+  330  scp cephadm cc@storage-volume-1:~/
+  331  c
+  332  sudo vim /etc/hosts
+  333  sudo ceph orch host ls
+  334  sudo ceph orch host add storage-volume-1 10.52.3.76
+  335  sudo ceph orch host add storage-volume-1 10.52.3.76c
+  336  c
+  337  vim /etc/hosts
+  338  sudo vim /etc/hosts
+  339  ls
+  340  scp cephadm update_bash.sh cc@compute-1
+  341  scp cephadm update_bash.sh cc@compute-1:~/
+  342  scp cephadm update_bash.sh cc@storage-volume-1:~/
+  343  ssh-keygen -f "/home/cc/.ssh/known_hosts" -R "storage-volume-1"
+  344  scp cephadm update_bash.sh cc@storage-volume-1:~/
+  345  scp cephadm update_bash.sh cc@storage-2:~/
+  346  scp /etc/ceph/ceph.conf cc@storage-2:~/
+  347  c
+  348  scp /etc/ceph/ceph.client.admin.keyring cc@storage-2:~/
+  349  sudo scp /etc/ceph/ceph.client.admin.keyring cc@storage-2:~/
+  350  cd /etc/ceph/
+  351  cat ceph.client.admin.keyring
+  352  sudo cat ceph.client.admin.keyring
+  353  c
+  354  sudo ceph orch host add storage-volume-1 10.52.3.76
+  355  sudo ceph orch host ls
+  356  sudo ceph orch host rescan storage-volume-1
+  357  sudo ceph orch device ls
+  358  c
+  359  sudo ceph orch daemon add osd storage-volume-1:/dev/sda
+  360  sudo ceph orch device ls
+  361  sudo ceph orch host rescan storage-volume-1
+  362  sudo ceph orch host rescan storage-volume-2
+  363  watch sudo ceph orch ps
+  364  c
+  365  ls
+  366  scp ceph.client.admin.keyring cc@storage:~/
+  367  scp ceph.client.admin.keyring cc@storage-2:~/
+  368  sudo scp ceph.client.admin.keyring cc@storage-2:~/
+  369  ssh cc@storage-2 hostname
+  370  ssh-copy-id cc@storage-2
+  371  sudo scp ceph.client.admin.keyring cc@storage-2:~/
+  372  c
+  373  sudo cp /etc/ceph/ceph.client.admin.keyring ~/
+  374  cd
+  375  c
+  376  sudo chown cc:cc ~/ceph*
+  377  ll
+  378  c
+  379  scp ~/ceph.client.admin.keyring cc@storage-2:~/
+  380  sudo ceph orch device ls
+  381  sudo ceph osd tree
+  382  sudo ceph osd pool ls
+  383  sudo ceph osd pool get rbd size
+  384  sudo ceph osd pool get size
+  385  c
+  386  sudo ceph osd pool set rbd size 2
+  387  sudo ceph osd pool ls
+  388  sudo ceph osd pool get rbd size
+  389  sudo ceph osd pool get testpool size
+  390  sudo ceph osd pool get testpool min_size
+  391  sudo ceph osd pool get .mgr size
+  392  sudo ceph osd pool get .mgr min_size
+  393  sudo ceph osd pool set testpool size 2
+  394  sudo ceph osd pool set testpool min_size 1
+  395  sudo ceph osd pool set .mgr size 2
+  396  sudo ceph osd pool set .mgr min_size 1
+  397  sudo ceph fs volume create cephfs
+  398  sudo ceph fs status
+  399  c
+  400  sudo ceph auth get-key client.admin | sudo tee /etc/ceph/admin.secret
+  401  c
+  402  sudo scp /etc/ceph/admin.secret cc@storage-2:~/
+  403  sudo cp /etc/ceph/admin.secret ~/
+  404  sudo scp admin.secret cc@storage-2:~/
+  405  ls
+  406  ll
+  407  su
+  408  sudo chown cc:cc ~/admin.secret
+  409  ll
+  410  sudo scp admin.secret cc@storage-2:~/
+  411  mv admin.secret admin.secret.tmp
+  412  sudo scp admin.secret.tmp  cc@storage-2:~/admin.secret
+  413  ssh cc@storage-2 hostname
+  414  cat admin.secret.tmp
+  415  c
+  416  sudo cp /etc/ceph/admin.secret ~/admin.secret.tmp
+  417  sudo chown cc:cc ~/admin.secret.tmp
+  418  scp ~/admin.secret.tmp cc@storage-2:~/admin.secret
+  419  rm ~/admin.secret.tmp
+  420  ls
+  421  sudo ceph fs status
+  422  sudo ceph fs volume create cephfsc
+  423  sudo ceph fs status
+  424  sudo ceph fs volume rm cephfsc
+  425  sudo ceph fs volume rm cephfsc --yes-i-really-mean-it
+  426  sudo ceph fs status
+  427  sudo ceph fs status cephfsc
+  428  sudo ceph fs fail cephfsc
+  429  sudo ceph fs rm cephfsc --yes-i-really-mean-it
+  430  sudo ceph osd pool rm cephfs.cephfsc.meta cephfs.cephfsc.meta --yes-i-really-really-mean-it
+  431  sudo ceph tell mon.* injectargs '--mon-allow-pool-delete=true'
+  432  sudo ceph osd pool rm cephfs.cephfsc.meta cephfs.cephfsc.meta --yes-i-really-really-mean-it
+  433  sudo ceph osd pool rm cephfs.cephfsc.data cephfs.cephfsc.data --yes-i-really-really-mean-it
+  434  c
+  435  sudo ceph fs ls
+  436  sudo ceph osd pool ls
+  437  sudo ceph fs status
+  438  c
+  439  sudo ceph fs status
+  440  sudo ceph osd tree
+  441  sudo ceph -s
+  442  watch -n1 "sudo ceph -s"
+  443  sudo vim /etc/hosts
+  444  ls
+  445  scp cephadm update_bash.sh cc@compute-1:~/
+  446  ssh-keygen -f "/home/cc/.ssh/known_hosts" -R "compute-1"
+  447  scp cephadm update_bash.sh cc@compute-1:~/
+  448  scp cephadm update_bash.sh cc@compute-2:~/
+  449  c
+  450  ip a
+  451  sudo vim /etc/hosts
+  452  ls
+  453  cd /etc/ceph/
+  454  cat admin.secret
+  455  history
+  456  cd /sys/class/powercap/
+  457  exit
+  458  history
+  459  history > history_storage1.txt
