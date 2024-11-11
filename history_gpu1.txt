@@ -1,0 +1,209 @@
+    1  clear
+    2  nvidia-smi
+    3  sudo apt update
+    4  sudo apt upgrade
+    5  ls
+    6  nvidia-smi
+    7  c
+    8  lspci | grep -i nvidia
+    9  sudo apt install -y build-essential dkms
+   10  sudo add-apt-repository ppa:graphics-drivers/ppa
+   11  sudo apt update
+   12  sudo ubuntu-drivers autoinstall
+   13  apt search nvidia-driver
+   14  clear
+   15  sudo apt install -y nvidia-driver-535
+   16  sudo apt install -y nvidia-driver-560
+   17  c
+   18  pyenv activate training_pytorch
+   19  source .bashrc 
+   20  pyenv activate training_pytorch
+   21  c
+   22  cd 
+   23  cd gpu_training/
+   24  c
+   25  python pfs_test.py 
+   26  c
+   27  python pfs_test.py 
+   28  c
+   29  screen -S gpu
+   30  nvidia-smi
+   31  sudo apt install -y nvidia-nsight-systems
+   32  cat /proc/sys/kernel/perf_event_paranoid
+   33  sudo sh -c 'echo 2 >/proc/sys/kernel/perf_event_paranoid'
+   34  cat /proc/sys/kernel/perf_event_paranoid
+   35  sudo sh -c 'echo kernel.perf_event_paranoid=2 > /etc/sysctl.d/local.conf'
+   36  ldd --version
+   37  /usr/local/cuda/samples/1_Utilities/deviceQuery
+   38  c
+   39  clear
+   40  ip a
+   41  vim .ssh/authorized_keys 
+   42  ip a
+   43  c
+   44  clear
+   45  ls
+   46  ./update_bash.sh 
+   47  source .bashrc 
+   48  c
+   49  vim /etc/hosts
+   50  sudo vim /etc/hosts
+   51  sudo ./cephadm install
+   52  sudo ./cephadm add-repo --release quincy
+   53  sudo apt update
+   54  sudo apt install -y ceph-common
+   55  sudo apt install -y ceph-fuse
+   56  sudo mkdir -p /mnt/cephfs
+   57  ls
+   58  ll
+   59  sudo mv ~/admin.secret /etc/ceph/
+   60  sudo mount -t ceph storage-1:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+   61  ceph
+   62  sudo mv ~/ceph.client.admin.keyring /etc/ceph/
+   63  sudo mv ~/ceph.conf /etc/ceph/
+   64  cd /etc/ceph/
+   65  cd 
+   66  c
+   67  sudo mount -t ceph storage-1:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+   68  sudo ceph -s
+   69  cd /mnt/cephfs/
+   70  cd coco_data/
+   71  c
+   72  cd 
+   73  clear
+   74  cd /mnt/cephfs/
+   75  cd coco_data
+   76  cd 
+   77  c
+   78  watch -n1 "nvidia-smi"
+   79  screen -ls
+   80  screen -r gpu 
+   81  watch -n1 "nvidia-smi"
+   82  screen -S tensorboard
+   83  screen -ls
+   84  screen -d gpu 
+   85  screen -r gpu 
+   86  screen -ls
+   87  screen -r gpu 
+   88  watch -n1 "nvidia-smi"
+   89  screen -r gpu 
+   90  watch -n1 "nvidia-smi"
+   91  screen -r gpu 
+   92  ls
+   93  c
+   94  ls
+   95  cd data_coco/
+   96  cd coco_data/
+   97  sudo rm -r *
+   98  ls
+   99  cd 
+  100  screen -S copy
+  101  screen -r gpu
+  102  screen -r copy 
+  103  screen -ls
+  104  c
+  105  wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+  106  sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+  107  sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
+  108  sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
+  109  c
+  110  sudo apt-get update
+  111  sudo apt-get install nsight-systems-2023.2
+  112  c
+  113  history | grep echo
+  114  sudo sh -c "sync && echo 3 > /proc/sys/vm/drop_caches"
+  115  c
+  116  pyenv activate training_pytorch
+  117  cd 
+  118  cd gpu_training/
+  119  nsys profile -t cuda,nvtx,osrt,cudnn,cublas -o test_profile python test_setup.py
+  120  pwd
+  121  ls
+  122  c
+  123  cd /sys/class/powercap/intel-rapl/intel-rapl\:
+  124  cd /sys/class/powercap/intel-rapl/
+  125  c
+  126  cd 
+  127  c
+  128  cd energyMonitor/
+  129  pyenv activate training_pytorch 
+  130  c
+  131  sudo -E /home/cc/.pyenv/shims/python client_monitor_master.py 
+  132  c
+  133  cd /sys/class/
+  134  cd powercap/
+  135  cd intel-rapl:0
+  136  cat energy_uj 
+  137  sudo cat energy_uj 
+  138  cd power/
+  139  cd ../
+  140  cd 
+  141  c
+  142  pyenv activate training_pytorch 
+  143  c
+  144  pip install pynvml
+  145  sudo chmod +r /sys/class/powercap/intel-rapl:0/energy_uj
+  146  cat /sys/class/powercap/intel-rapl:0/energy_uj
+  147  c
+  148  cd energyMonitor/
+  149  python energyMonitor.py 
+  150  which python
+  151  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  152  c
+  153  python energyMonitor.py 
+  154  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  155  c
+  156  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  157  cat /sys/class/powercap/intel-rapl:1/energy_uj
+  158  sudo chmod +r /sys/class/powercap/intel-rapl:1/energy_uj
+  159  c
+  160  python energyMonitor.py 
+  161  sudo chmod +r /sys/class/powercap/intel-rapl/intel-rapl:1/intel-rapl:1:0/energy_uj
+  162  sudo chmod +r /sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj
+  163  sudo chmod +r /sys/class/powercap/intel-rapl/intel-rapl:1/intel-rapl:1:0/energy_uj
+  164  sudo chmod +r /sys/class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj
+  165  python energyMonitor.py 
+  166  c
+  167  python energyMonitor.py 
+  168  c
+  169  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  170  c
+  171  clear
+  172  sudo -E /home/cc/.pyenv/shims/python couter_size.py 
+  173  c
+  174  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  175  c
+  176  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  177  c
+  178  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  179  c
+  180  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  181  c
+  182  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  183  c
+  184  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  185  c
+  186  sudo -E /home/cc/.pyenv/shims/python energyMonitor.py 
+  187  c
+  188  sudo -E /home/cc/.pyenv/shims/python energyMonitorCPU.py 
+  189  c
+  190  sudo -E /home/cc/.pyenv/shims/python client_monitor_energy.py 
+  191  ip a
+  192  c
+  193  history | grep firewalld
+  194  history | grep firewall-cmd 
+  195  sudo firewall-cmd --zone=trusted --add-source=<your_subnet_cidr/netmask>
+  196  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+  197  htop
+  198  vim test.c
+  199  gcc -o test test.c 
+  200  vim test.c
+  201  gcc -o test test.c 
+  202  ls
+  203  ./test
+  204  vim test.c
+  205  gcc -o test test.c 
+  206  ./test
+  207  c
+  208  history 
+  209  history > history_gpu1.txt

@@ -1,0 +1,29 @@
+cc@storage-volume-1:~$ history
+    1  sudo apt update
+    2  sudo apt upgrade
+    3  c
+    4  clear
+    5  lsblk
+    6  c
+    7  vim .ssh/authorized_keys
+    8  ls
+    9  ./update_bash.sh
+   10  source .bashrc
+   11  c
+   12  sudo apt install docker.io
+   13  ls
+   14  c
+   15  lsblk
+   16  c
+   17  sudo wipefs -a /dev/sd[a-h]
+   18  sudo wipefs -a /dev/sd[k-r]
+   19  c
+   20  lsblk
+   21  cd /sys/
+   22  cd class/
+   23  cd powercap/
+   24  c
+   25  exit
+   26  history
+   27  exit
+   28  history
