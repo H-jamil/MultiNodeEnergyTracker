@@ -350,8 +350,8 @@ if __name__ == "__main__":
         exit(1)
 
     # Node configuration
-    NODE_ID = "node1"  # Change this for each node
-    MASTER_IP = "localhost"  # Change this to your master's IP
+    NODE_ID = "compute1"  # Change this for each node
+    MASTER_IP = "10.52.3.53"  # Change this to your master's IP
     CONTROL_PORT = 5000
     DATA_PORT = 5001
 
