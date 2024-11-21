@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timedelta
 from typing import List
 from influxdb import InfluxDBClient
+import math
 
 class EnergyCoordinator:
     def __init__(self, control_port=5000, data_port=5001, db_identifier='default'):
@@ -23,9 +24,7 @@ class EnergyCoordinator:
         self.setup_influxdb()
 
         # Time series management
-        self.start_time = None
         self.time_interval = 0.1  # 100ms interval
-        self.time_series = []  # List of timestamps
         self.agent_data = {}  # Dict to store data per agent
 
     def setup_influxdb(self):
@@ -118,151 +117,64 @@ class EnergyCoordinator:
                 msg = msg_data.decode()
                 data = json.loads(msg)
                 node_id = data.get('node_id')
-                measurements = data.get('measurements', [])
-                self.process_measurements(node_id, measurements)
+                timestamp = data.get('timestamp')
+                memory_energy = data.get('memory_energy')
+                cpu_energy = data.get('cpu_energy')
+                gpu_energy = data.get('gpu_energy')
+
+                # Process the measurement
+                self.process_measurement(node_id, timestamp, memory_energy, cpu_energy, gpu_energy)
             except Exception as e:
                 print(f"Error in data connection: {e}")
                 break
         conn.close()
         print(f"Data connection closed from {addr}")
 
-    def process_measurements(self, node_id, measurements):
+    def process_measurement(self, node_id, timestamp, memory_energy, cpu_energy, gpu_energy):
         with self.lock:
-            if self.start_time is None:
-                # Set the start time when the first measurement arrives
-                self.start_time = datetime.utcnow()
-                print(f"Start time set to {self.start_time}")
+            # Align timestamp to the sampling interval
+            aligned_timestamp = self.align_timestamp(timestamp)
+            measurement = {
+                'node_id': node_id,
+                'timestamp': aligned_timestamp,
+                'memory_energy': memory_energy,
+                'cpu_energy': cpu_energy,
+                'gpu_energy': gpu_energy
+            }
 
-            # Convert measurement timestamps to datetime objects
-            for m in measurements:
-                m['datetime'] = datetime.utcfromtimestamp(m['timestamp'])
-
-            # Update the agent's data
+            # Initialize data list for the node if not present
             if node_id not in self.agent_data:
                 self.agent_data[node_id] = []
 
-            self.agent_data[node_id].extend(measurements)
+            # Append the measurement
+            self.agent_data[node_id].append(measurement)
 
-            # Now, generate the time series up to the latest measurement
-            self.update_time_series()
+            # Store the data point in InfluxDB
+            self.store_data_point(measurement)
 
-            # For each agent, fill missing data and write to InfluxDB
-            for agent_id in self.agent_data.keys():
-                self.fill_and_store_agent_data(agent_id)
+    def align_timestamp(self, timestamp):
+        # Align timestamp to the lower multiple of the sampling interval
+        sample_interval = self.time_interval
+        aligned_timestamp = math.floor(timestamp / sample_interval) * sample_interval
+        return aligned_timestamp
 
-    def update_time_series(self):
-        # Generate time series from start_time to now with 100ms intervals
-        current_time = datetime.utcnow()
-        if self.time_series:
-            last_time = self.time_series[-1]
-        else:
-            last_time = self.start_time
-
-        while last_time <= current_time:
-            last_time += timedelta(seconds=self.time_interval)
-            self.time_series.append(last_time)
-
-    def fill_and_store_agent_data(self, agent_id):
-        agent_measurements = self.agent_data[agent_id]
-        # Sort the agent's measurements by datetime
-        agent_measurements.sort(key=lambda x: x['datetime'])
-
-        # Create a dictionary of measurements keyed by timestamp
-        measurement_dict = {m['datetime']: m for m in agent_measurements}
-
-        # Prepare data points for InfluxDB
-        data_points = []
-
-        for ts in self.time_series:
-            # If measurement exists at this timestamp, use it
-            if ts in measurement_dict:
-                m = measurement_dict[ts]
-                cpu_core = m.get('cpu_core', 0.0)
-                cpu_total = m.get('cpu_total', 0.0)
-                gpu_readings = m.get('gpu_readings', [])
-            else:
-                # Interpolate or use last known measurement
-                cpu_core, cpu_total, gpu_readings = self.interpolate_agent_data(agent_id, ts)
-
-            # Prepare the data point
-            data_point = {
-                "measurement": "energy_measurements",
-                "tags": {
-                    "node_id": agent_id,
-                },
-                "time": ts.isoformat() + "Z",
-                "fields": {
-                    "cpu_core": float(cpu_core),
-                    "cpu_total": float(cpu_total),
-                    "gpu_energy": float(self.calculate_gpu_energy(gpu_readings)),
-                }
+    def store_data_point(self, measurement):
+        ts = datetime.utcfromtimestamp(measurement['timestamp'])
+        data_point = {
+            "measurement": "energy_measurements",
+            "tags": {
+                "node_id": measurement['node_id'],
+            },
+            "time": ts.isoformat() + "Z",
+            "fields": {
+                "memory_energy": float(measurement['memory_energy']),
+                "cpu_energy": float(measurement['cpu_energy']),
+                "gpu_energy": float(measurement['gpu_energy']) if measurement['gpu_energy'] is not None else 0.0,
             }
-            data_points.append(data_point)
-
-        # Write data points to InfluxDB
-        if data_points:
-            self.influx_client.write_points(data_points)
-            print(f"Wrote {len(data_points)} points for agent {agent_id} to InfluxDB")
-
-    def interpolate_agent_data(self, agent_id, timestamp):
-        # Get agent measurements
-        agent_measurements = self.agent_data[agent_id]
-        # Find the two measurements surrounding the timestamp
-        prev_m = None
-        next_m = None
-
-        for m in agent_measurements:
-            if m['datetime'] <= timestamp:
-                prev_m = m
-            elif m['datetime'] > timestamp and next_m is None:
-                next_m = m
-                break
-
-        if prev_m and next_m:
-            # Linear interpolation
-            delta = (next_m['datetime'] - prev_m['datetime']).total_seconds()
-            if delta == 0:
-                ratio = 0
-            else:
-                ratio = (timestamp - prev_m['datetime']).total_seconds() / delta
-
-            cpu_core = prev_m.get('cpu_core', 0.0) + ratio * (next_m.get('cpu_core', 0.0) - prev_m.get('cpu_core', 0.0))
-            cpu_total = prev_m.get('cpu_total', 0.0) + ratio * (next_m.get('cpu_total', 0.0) - prev_m.get('cpu_total', 0.0))
-            gpu_readings = self.interpolate_gpu_readings(prev_m.get('gpu_readings', []), next_m.get('gpu_readings', []), ratio)
-        elif prev_m:
-            # Extrapolate using previous measurement
-            cpu_core = prev_m.get('cpu_core', 0.0)
-            cpu_total = prev_m.get('cpu_total', 0.0)
-            gpu_readings = prev_m.get('gpu_readings', [])
-        elif next_m:
-            # Extrapolate using next measurement
-            cpu_core = next_m.get('cpu_core', 0.0)
-            cpu_total = next_m.get('cpu_total', 0.0)
-            gpu_readings = next_m.get('gpu_readings', [])
-        else:
-            # No data available
-            cpu_core = 0.0
-            cpu_total = 0.0
-            gpu_readings = []
-
-        return cpu_core, cpu_total, gpu_readings
-
-    def interpolate_gpu_readings(self, prev_readings, next_readings, ratio):
-        # Interpolate GPU readings if possible
-        if prev_readings and next_readings and len(prev_readings) == len(next_readings):
-            return [p + ratio * (n - p) for p, n in zip(prev_readings, next_readings)]
-        elif prev_readings:
-            return prev_readings
-        elif next_readings:
-            return next_readings
-        else:
-            return []
-
-    def calculate_gpu_energy(self, gpu_readings):
-        # Calculate GPU energy from power readings
-        gpu_power = sum(gpu_readings)
-        gpu_energy = gpu_power * self.time_interval
-        return gpu_energy
+        }
+        # Write data point to InfluxDB
+        self.influx_client.write_points([data_point])
+        print(f"Wrote data point for agent {measurement['node_id']} at time {ts}")
 
     def stop(self):
         self.stop_event.set()

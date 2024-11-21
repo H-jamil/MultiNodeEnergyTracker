@@ -1,22 +1,14 @@
 import os
 import time
+import threading
+import subprocess
 import pynvml
-from threading import Thread, Lock, Event, Barrier
-from collections import deque
-from dataclasses import dataclass
-from typing import List, Deque
 from datetime import datetime
-import statistics
-import json
+from threading import Thread, Lock, Event
+import argparse
 import socket
 import struct
-
-@dataclass
-class EnergyMeasurement:
-    timestamp: float
-    cpu_core: float
-    cpu_total: float
-    gpu_readings: List[float]
+import json
 
 class EnergyClient:
     def __init__(self, master_ip: str, control_port: int, data_port: int, node_id: str):
@@ -31,90 +23,32 @@ class EnergyClient:
         try:
             self.control_socket.connect((self.master_ip, self.control_port))
             self.data_socket.connect((self.master_ip, self.data_port))
-            # Removed sending node identification
             print(f"Connected to master at {self.master_ip}:{self.control_port}/{self.data_port}")
         except Exception as e:
             print(f"Error connecting to master: {e}")
             raise
-    
 
     def close(self):
         self.data_socket.close()
         self.control_socket.close()
 
-class CircularBuffer:
-    def __init__(self, maxlen: int):
-        self.buffer: Deque[EnergyMeasurement] = deque(maxlen=maxlen)
-        self.lock = Lock()
-
-    def add(self, measurement: EnergyMeasurement):
-        with self.lock:
-            self.buffer.append(measurement)
-
-    def get_all(self) -> List[EnergyMeasurement]:
-        with self.lock:
-            return list(self.buffer)
-
-    def clear(self):
-        with self.lock:
-            self.buffer.clear()
-
-class EnergyAccumulator:
-    def __init__(self):
-        self.cpu_core_total = 0.0
-        self.cpu_package_total = 0.0
-        self.gpu_energy_total = 0.0
-        self.lock = Lock()
-        self.last_timestamp = None
-
-    def add(self, measurement: EnergyMeasurement):
-        with self.lock:
-            self.cpu_core_total += measurement.cpu_core
-            self.cpu_package_total += measurement.cpu_total
-            
-            if self.last_timestamp is not None:
-                duration = measurement.timestamp - self.last_timestamp
-                for gpu_power in measurement.gpu_readings:
-                    self.gpu_energy_total += gpu_power * duration
-            
-            self.last_timestamp = measurement.timestamp
-
-    def get_and_reset(self):
-        with self.lock:
-            totals = (self.cpu_core_total, self.cpu_package_total, self.gpu_energy_total)
-            self.cpu_core_total = 0.0
-            self.cpu_package_total = 0.0
-            self.gpu_energy_total = 0.0
-            self.last_timestamp = None
-            return totals
-
 class EnergyMonitor:
-    def __init__(self, buffer_time_seconds: int = 2, client: EnergyClient = None):
-        self.sample_interval = 0.1  # 100ms
-        self.buffer_size = int(buffer_time_seconds / self.sample_interval)
-        self.buffer = CircularBuffer(self.buffer_size)
-        self.accumulator = EnergyAccumulator()
-        self.stop_event = Event()
+    def __init__(self, sample_interval=0.1, client=None):
+        self.sample_interval = sample_interval
         self.client = client
-        
-        # Fixed 32-bit counter
-        self.MAX_ENERGY_COUNTER = 2**32
-        
-        # Synchronization
-        self.measurement_threads = 3  # Adjusted later if GPU monitoring is disabled
-        self.sync_barrier = None  # Will be initialized after determining thread count
-        
-        # Initialize RAPL paths
-        self.rapl_dir = "/sys/class/powercap/intel-rapl"
-        
-        # Initialize NVIDIA GPU monitoring
+        self.stop_event = Event()
+        self.measurements = {}
+        self.measurements_lock = Lock()
+        self.base_time = None
+        self.last_measurements = {'memory_energy': None, 'cpu_energy': None, 'gpu_energy': None}
+
+        # Initialize GPU monitoring
         self.gpu_available = False
         try:
             pynvml.nvmlInit()
             self.gpu_count = pynvml.nvmlDeviceGetCount()
             if self.gpu_count > 0:
-                self.gpu_handles = [pynvml.nvmlDeviceGetHandleByIndex(i) 
-                                   for i in range(self.gpu_count)]
+                self.gpu_handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(self.gpu_count)]
                 self.gpu_available = True
                 print(f"Detected {self.gpu_count} GPU(s)")
             else:
@@ -122,178 +56,72 @@ class EnergyMonitor:
         except pynvml.NVMLError as e:
             print(f"NVML Initialization failed: {e}")
             self.gpu_available = False
-        
-        # Adjust the number of measurement threads based on GPU availability
-        self.measurement_threads = 2 + (1 if self.gpu_available else 0)
-        self.sync_barrier = Barrier(self.measurement_threads)
-        
-        # Shared measurement storage
-        self.current_measurement = None
-        self.measurement_lock = Lock()
-        
-        # Track valid total/core ratios
-        self.valid_ratios = deque(maxlen=100)
-        self.ratio_lock = Lock()
-        self.min_ratio = 1.1
 
-    def _read_rapl_energy(self, path: str) -> int:
-        try:
-            with open(path, "r") as f:
-                return int(f.read())
-        except (PermissionError, FileNotFoundError):
-            return 0
+    def run_perf_command(self):
+        cmd = ["perf", "stat", "-a", "-e", "power/energy-ram/", "-e", "power/energy-pkg/", "sleep", str(self.sample_interval)]
+        process = subprocess.Popen(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        memory_energy = 0.0
+        cpu_energy = 0.0
+        for line in stderr.decode().splitlines():
+            line = line.strip()
+            if "power/energy-ram/" in line:
+                parts = line.split()
+                if len(parts) >= 1:
+                    try:
+                        energy_value = float(parts[0].replace(',', ''))
+                        memory_energy = energy_value
+                    except ValueError:
+                        pass
+            elif "power/energy-pkg/" in line:
+                parts = line.split()
+                if len(parts) >= 1:
+                    try:
+                        energy_value = float(parts[0].replace(',', ''))
+                        cpu_energy = energy_value
+                    except ValueError:
+                        pass
+        return memory_energy, cpu_energy
 
-    def _calculate_energy_delta(self, current: int, previous: int) -> float:
-        if current < previous:  # Overflow occurred
-            delta = (self.MAX_ENERGY_COUNTER - previous) + current
-        else:
-            delta = current - previous
-        return delta / 1_000_000  # Convert to Joules
-
-    def _update_ratio(self, total: float, core: float):
-        if total > 0 and core > 0:
-            ratio = total / core
-            if ratio > self.min_ratio:
-                with self.ratio_lock:
-                    self.valid_ratios.append(ratio)
-
-    def _get_current_ratio(self) -> float:
-        with self.ratio_lock:
-            if len(self.valid_ratios) > 0:
-                return statistics.median(self.valid_ratios)
-            return self.min_ratio
-
-    def _get_valid_total_energy(self, current_total: float, current_core: float) -> float:
-        if current_total > 0 and current_core > 0:
-            ratio = current_total / current_core
-            if ratio > self.min_ratio:
-                self._update_ratio(current_total, current_core)
-                return current_total
-        return current_core * self._get_current_ratio()
-
-    def measure_cpu_core(self):
-        last_energies = {}
-        
+    def measure_cpu_memory(self):
+        next_time = self.base_time
         while not self.stop_event.is_set():
-            self.sync_barrier.wait()
-            timestamp = time.time()
-            
-            core_energy = 0
-            for package in os.listdir(self.rapl_dir):
-                if package.startswith("intel-rapl:"):
-                    core_path = os.path.join(self.rapl_dir, package, 
-                                           f"{package}:0", "energy_uj")
-                    energy = self._read_rapl_energy(core_path)
-                    
-                    if package in last_energies:
-                        core_energy += self._calculate_energy_delta(
-                            energy, last_energies[package])
-                    last_energies[package] = energy
-            
-            with self.measurement_lock:
-                if self.current_measurement is None:
-                    self.current_measurement = EnergyMeasurement(
-                        timestamp=timestamp,
-                        cpu_core=core_energy,
-                        cpu_total=0.0,
-                        gpu_readings=[]
-                    )
-                else:
-                    self.current_measurement.cpu_core = core_energy
-            
-            time.sleep(self.sample_interval)
-
-    def measure_cpu_total(self):
-        last_energies = {}
-        
-        while not self.stop_event.is_set():
-            self.sync_barrier.wait()
-            timestamp = time.time()
-            
-            total_energy = 0
-            for package in os.listdir(self.rapl_dir):
-                if package.startswith("intel-rapl:"):
-                    package_path = os.path.join(self.rapl_dir, package, "energy_uj")
-                    energy = self._read_rapl_energy(package_path)
-                    
-                    if package in last_energies and energy > 0:
-                        delta = self._calculate_energy_delta(energy, last_energies[package])
-                        if delta > 0:
-                            total_energy += delta
-                    last_energies[package] = energy
-            
-            with self.measurement_lock:
-                if self.current_measurement is not None:
-                    self.current_measurement.cpu_total = self._get_valid_total_energy(
-                        total_energy, self.current_measurement.cpu_core)
-            
-            time.sleep(self.sample_interval)
+            sleep_time = next_time - time.time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            else:
+                # We're behind schedule, proceed immediately
+                pass
+            memory_energy, cpu_energy = self.run_perf_command()
+            with self.measurements_lock:
+                if next_time not in self.measurements:
+                    self.measurements[next_time] = {}
+                self.measurements[next_time]['memory_energy'] = memory_energy
+                self.measurements[next_time]['cpu_energy'] = cpu_energy
+            next_time += self.sample_interval
 
     def measure_gpu(self):
+        next_time = self.base_time
         while not self.stop_event.is_set():
-            self.sync_barrier.wait()
-            timestamp = time.time()
-            
-            gpu_readings = []
+            sleep_time = next_time - time.time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            else:
+                pass
+            gpu_power = 0.0
             for handle in self.gpu_handles:
                 try:
                     power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
-                    gpu_readings.append(power_mw / 1000.0)  # Convert to Watts
+                    gpu_power += power_mw / 1000.0  # Convert to Watts
                 except pynvml.NVMLError:
-                    gpu_readings.append(0.0)
-            
-            with self.measurement_lock:
-                if self.current_measurement is not None:
-                    self.current_measurement.gpu_readings = gpu_readings
-                    # Add measurement to buffer and accumulator
-                    self.buffer.add(self.current_measurement)
-                    self.accumulator.add(self.current_measurement)
-                    self.current_measurement = None
-            
-            time.sleep(self.sample_interval)
+                    pass
+            gpu_energy = gpu_power * self.sample_interval
+            with self.measurements_lock:
+                if next_time not in self.measurements:
+                    self.measurements[next_time] = {}
+                self.measurements[next_time]['gpu_energy'] = gpu_energy
+            next_time += self.sample_interval
 
-    def measure_no_gpu(self):
-        while not self.stop_event.is_set():
-            self.sync_barrier.wait()
-            # No GPUs to measure, but we need to synchronize and proceed
-            with self.measurement_lock:
-                if self.current_measurement is not None:
-                    self.current_measurement.gpu_readings = []
-                    # Add measurement to buffer and accumulator
-                    self.buffer.add(self.current_measurement)
-                    self.accumulator.add(self.current_measurement)
-                    self.current_measurement = None
-            time.sleep(self.sample_interval)
-
-    def push_results(self):
-        while not self.stop_event.is_set():
-            measurements = self.buffer.get_all()
-            if measurements and self.client:
-                # Convert measurements to JSON
-                data = {
-                    'node_id': self.client.node_id,
-                    'measurements': [
-                        {
-                            'timestamp': m.timestamp,
-                            'cpu_core': m.cpu_core,
-                            'cpu_total': m.cpu_total,
-                            'gpu_readings': m.gpu_readings
-                        } for m in measurements
-                    ]
-                }
-                
-                # Send data to master
-                json_data = json.dumps(data)
-                msg_length = struct.pack('!I', len(json_data))
-                try:
-                    self.client.data_socket.sendall(msg_length)
-                    self.client.data_socket.sendall(json_data.encode())
-                    print(f"Sent data to master: {len(measurements)} measurements")
-                except Exception as e:
-                    print(f"Error sending data: {e}")
-                
-                self.buffer.clear()
-            time.sleep(2.0)  # Adjust the push interval as needed
     def send_heartbeat(self):
         while not self.stop_event.is_set():
             heartbeat = {
@@ -310,26 +138,90 @@ class EnergyMonitor:
                 print(f"Heartbeat sent at {heartbeat['timestamp']}")
             except Exception as e:
                 print(f"Error sending heartbeat: {e}")
-                break  # Exit the loop if the socket is broken
-            time.sleep(5.0)  # Heartbeat interval
+                break
+            time.sleep(5.0)
+
+    def output_results(self):
+        current_time = self.base_time
+        while not self.stop_event.is_set():
+            with self.measurements_lock:
+                data_ready = current_time in self.measurements
+                data = self.measurements.get(current_time, {})
+                all_measurements_present = (
+                    ('memory_energy' in data and 'cpu_energy' in data) and
+                    (not self.gpu_available or 'gpu_energy' in data)
+                )
+                if data_ready and all_measurements_present:
+                    # Update last measurements
+                    for key in ['memory_energy', 'cpu_energy', 'gpu_energy']:
+                        if key in data:
+                            self.last_measurements[key] = data[key]
+                    del self.measurements[current_time]
+                    # Output measurement
+                    timestamp_str = datetime.fromtimestamp(current_time).strftime('%H:%M:%S.%f')[:-3]
+                    print(f"{timestamp_str}  memory: {self.last_measurements['memory_energy']} Joules  cpu: {self.last_measurements['cpu_energy']} Joules  gpu: {self.last_measurements['gpu_energy']} Joules")
+                    # Send data to master
+                    if self.client:
+                        data_to_send = {
+                            'node_id': self.client.node_id,
+                            'timestamp': current_time,
+                            'memory_energy': self.last_measurements['memory_energy'],
+                            'cpu_energy': self.last_measurements['cpu_energy'],
+                            'gpu_energy': self.last_measurements['gpu_energy']
+                        }
+                        json_data = json.dumps(data_to_send)
+                        msg_length = struct.pack('!I', len(json_data))
+                        try:
+                            self.client.data_socket.sendall(msg_length)
+                            self.client.data_socket.sendall(json_data.encode())
+                            print(f"Sent data to master: {timestamp_str}")
+                        except Exception as e:
+                            print(f"Error sending data: {e}")
+                    current_time += self.sample_interval
+                elif data_ready and not all_measurements_present:
+                    # Measurements are incomplete, wait
+                    pass
+                else:
+                    # No data yet, check if we should fill missing data
+                    if current_time + self.sample_interval < time.time():
+                        # Fill missing data with last known values
+                        timestamp_str = datetime.fromtimestamp(current_time).strftime('%H:%M:%S.%f')[:-3]
+                        print(f"{timestamp_str}  memory: {self.last_measurements['memory_energy']} Joules  cpu: {self.last_measurements['cpu_energy']} Joules  gpu: {self.last_measurements['gpu_energy']} Joules (Filled)")
+                        # Send data to master
+                        if self.client:
+                            data_to_send = {
+                                'node_id': self.client.node_id,
+                                'timestamp': current_time,
+                                'memory_energy': self.last_measurements['memory_energy'],
+                                'cpu_energy': self.last_measurements['cpu_energy'],
+                                'gpu_energy': self.last_measurements['gpu_energy']
+                            }
+                            json_data = json.dumps(data_to_send)
+                            msg_length = struct.pack('!I', len(json_data))
+                            try:
+                                self.client.data_socket.sendall(msg_length)
+                                self.client.data_socket.sendall(json_data.encode())
+                                print(f"Sent data to master: {timestamp_str}")
+                            except Exception as e:
+                                print(f"Error sending data: {e}")
+                        current_time += self.sample_interval
+            time.sleep(0.01)
 
     def run(self):
-        threads = [
-            Thread(target=self.measure_cpu_core, name="CPUCoreThread"),
-            Thread(target=self.measure_cpu_total, name="CPUTotalThread"),
-            Thread(target=self.push_results, name="PushResultsThread"),
-            Thread(target=self.send_heartbeat, name="HeartbeatThread")
-        ]
-        
-        # Start GPU measurement thread if GPUs are available
+        self.base_time = time.time()
+        self.base_time = self.base_time - (self.base_time % self.sample_interval)
+        threads = []
+        cpu_memory_thread = Thread(target=self.measure_cpu_memory)
+        threads.append(cpu_memory_thread)
         if self.gpu_available:
-            threads.append(Thread(target=self.measure_gpu, name="GPUThread"))
-        else:
-            threads.append(Thread(target=self.measure_no_gpu, name="NoGPUThread"))
-        
+            gpu_thread = Thread(target=self.measure_gpu)
+            threads.append(gpu_thread)
+        heartbeat_thread = Thread(target=self.send_heartbeat)
+        threads.append(heartbeat_thread)
+        output_thread = Thread(target=self.output_results)
+        threads.append(output_thread)
         for t in threads:
             t.start()
-
         try:
             while True:
                 time.sleep(0.1)
@@ -345,22 +237,24 @@ class EnergyMonitor:
 
 if __name__ == "__main__":
     if os.geteuid() != 0:
-        print("This program needs root privileges to read RAPL energy values.")
+        print("This program needs root privileges to read energy values.")
         print("Please run with sudo.")
         exit(1)
 
-    # Node configuration
-    NODE_ID = "compute1"  # Change this for each node
-    MASTER_IP = "10.52.3.53"  # Change this to your master's IP
-    CONTROL_PORT = 5000
-    DATA_PORT = 5001
+    parser = argparse.ArgumentParser(description="Energy Monitoring Tool")
+    parser.add_argument('--sampling_time', type=float, default=0.1, help='Sampling time in seconds')
+    parser.add_argument('--node_id', type=str, default='compute1', help='Node ID')
+    parser.add_argument('--master_ip', type=str, default='10.52.3.53', help='Master IP address')
+    parser.add_argument('--control_port', type=int, default=5000, help='Control port')
+    parser.add_argument('--data_port', type=int, default=5001, help='Data port')
+    args = parser.parse_args()
 
     # Create and connect client
     client = EnergyClient(
-        master_ip=MASTER_IP,
-        control_port=CONTROL_PORT,
-        data_port=DATA_PORT,
-        node_id=NODE_ID
+        master_ip=args.master_ip,
+        control_port=args.control_port,
+        data_port=args.data_port,
+        node_id=args.node_id
     )
     try:
         client.connect()
@@ -370,5 +264,5 @@ if __name__ == "__main__":
         exit(1)
 
     # Create and run monitor
-    monitor = EnergyMonitor(buffer_time_seconds=2, client=client)
+    monitor = EnergyMonitor(sample_interval=args.sampling_time, client=client)
     monitor.run()
