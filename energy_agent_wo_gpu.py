@@ -192,7 +192,7 @@ class EnergyMonitor:
                 pass
             # if measurements_b:
             try:
-                while True:
+                while measurements_b and not measurements_b.empty():
                     timestamp_b, measurement_b = measurements_b.get_nowait()
                     data_b[timestamp_b] = measurement_b
             except Empty:
@@ -203,9 +203,9 @@ class EnergyMonitor:
             pending_timestamps = sorted(all_timestamps - processed_timestamps)
             for timestamp in pending_timestamps:
                 measurement_a = data_a.get(timestamp) 
-                measurement_b = data_b.get(timestamp) 
+                measurement_b = data_b.get(timestamp, {'gpu_energy': 0})  # Default GPU energy to 0
                 # print(f"measurement_a {measurement_a} measurement_b {measurement_a}")
-                if measurement_a is not None and measurement_b is not None:
+                if measurement_a is not None:
                     result = (measurement_a, measurement_b)
                     self.result_queue.put((timestamp, result))  # Enqueue the result
                     # print(f"timestamp, result {timestamp} {result}")

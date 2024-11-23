@@ -74,32 +74,67 @@ class EnergyCoordinator:
             data += packet
         return data
 
-    def handle_control_connection(self, conn, addr):
-        print(f"Control connection from {addr}")
-        while not self.stop_event.is_set():
-            try:
-                # First, read the message length (4 bytes)
-                header = self.recvall(conn, 4)
-                if not header:
-                    break
-                msg_length = struct.unpack('!I', header)[0]
-                # Then, read the message data
-                msg_data = self.recvall(conn, msg_length)
-                if not msg_data:
-                    break
-                msg = msg_data.decode()
-                heartbeat = json.loads(msg)
-                node_id = heartbeat.get('node_id')
-                timestamp = heartbeat.get('timestamp')
-                status = heartbeat.get('status')
-                with self.lock:
-                    self.nodes_status[node_id] = {'timestamp': timestamp, 'status': status}
-                print(f"Received heartbeat from node {node_id}: status={status}, timestamp={timestamp}")
-            except Exception as e:
-                print(f"Error in control connection: {e}")
-                break
-        conn.close()
-        print(f"Control connection closed from {addr}")
+    # def handle_data_connection(self, conn, addr):
+    #     print(f"Data connection from {addr}")
+    #     while not self.stop_event.is_set():
+    #         try:
+    #             # Read message length
+    #             header = self.recvall(conn, 4)
+    #             if not header:
+    #                 break
+    #             msg_length = struct.unpack('!I', header)[0]
+    #             # Read message data
+    #             msg_data = self.recvall(conn, msg_length)
+    #             if not msg_data:
+    #                 break
+    #             msg = msg_data.decode()
+    #             data = json.loads(msg)
+    #             node_id = data.get('node_id')
+    #             timestamp = data.get('timestamp')
+    #             measurement = data.get('measurement')
+
+    #             # Extract CPU/Memory and GPU energies
+    #             memory_cpu, gpu = measurement
+    #             memory_energy = memory_cpu.get('memory_energy')
+    #             cpu_energy = memory_cpu.get('cpu_energy')
+    #             gpu_energy = gpu.get('gpu_energy')
+
+    #             # Process the measurement
+    #             self.process_measurement(node_id, timestamp, memory_energy, cpu_energy, gpu_energy)
+    #         except Exception as e:
+    #             print(f"Error in data connection: {e}")
+    #             break
+    #     conn.close()
+    #     print(f"Data connection closed from {addr}")
+
+    # def handle_data_connection(self, conn, addr):
+    #     print(f"Data connection from {addr}")
+    #     while not self.stop_event.is_set():
+    #         try:
+    #             # Read message length
+    #             header = self.recvall(conn, 4)
+    #             if not header:
+    #                 break
+    #             msg_length = struct.unpack('!I', header)[0]
+    #             # Read message data
+    #             msg_data = self.recvall(conn, msg_length)
+    #             if not msg_data:
+    #                 break
+    #             msg = msg_data.decode()
+    #             data = json.loads(msg)
+    #             node_id = data.get('node_id')
+    #             timestamp = data.get('timestamp')
+    #             memory_energy = data.get('memory_energy')
+    #             cpu_energy = data.get('cpu_energy')
+    #             gpu_energy = data.get('gpu_energy')
+
+    #             # Process the measurement
+    #             self.process_measurement(node_id, timestamp, memory_energy, cpu_energy, gpu_energy)
+    #         except Exception as e:
+    #             print(f"Error in data connection: {e}")
+    #             break
+    #     conn.close()
+    #     print(f"Data connection closed from {addr}")
 
     def handle_data_connection(self, conn, addr):
         print(f"Data connection from {addr}")
@@ -115,28 +150,36 @@ class EnergyCoordinator:
                 if not msg_data:
                     break
                 msg = msg_data.decode()
-                data = json.loads(msg)
-                node_id = data.get('node_id')
-                timestamp = data.get('timestamp')
-                memory_energy = data.get('memory_energy')
-                cpu_energy = data.get('cpu_energy')
-                gpu_energy = data.get('gpu_energy')
+                batch_data = json.loads(msg)  # Parse the batch data (list of measurements)
+                print(f"Received {len(batch_data)} points from {addr}")
+                # Process each measurement in the batch
+                for data in batch_data:
+                    node_id = data.get('node_id')
+                    timestamp = data.get('timestamp')
+                    measurement = data.get('measurement')
 
-                # Process the measurement
-                self.process_measurement(node_id, timestamp, memory_energy, cpu_energy, gpu_energy)
+                    # Extract CPU/Memory and GPU energies
+                    memory_cpu, gpu = measurement
+                    memory_energy = memory_cpu.get('memory_energy')
+                    cpu_energy = memory_cpu.get('cpu_energy')
+                    gpu_energy = gpu.get('gpu_energy')
+
+                    # Process the measurement
+                    self.process_measurement(node_id, timestamp, memory_energy, cpu_energy, gpu_energy)
             except Exception as e:
                 print(f"Error in data connection: {e}")
                 break
         conn.close()
         print(f"Data connection closed from {addr}")
 
+
     def process_measurement(self, node_id, timestamp, memory_energy, cpu_energy, gpu_energy):
         with self.lock:
             # Align timestamp to the sampling interval
-            aligned_timestamp = self.align_timestamp(timestamp)
+            # aligned_timestamp = self.align_timestamp(timestamp)
             measurement = {
                 'node_id': node_id,
-                'timestamp': aligned_timestamp,
+                'timestamp': timestamp,
                 'memory_energy': memory_energy,
                 'cpu_energy': cpu_energy,
                 'gpu_energy': gpu_energy
@@ -174,7 +217,7 @@ class EnergyCoordinator:
         }
         # Write data point to InfluxDB
         self.influx_client.write_points([data_point])
-        print(f"Wrote data point for agent {measurement['node_id']} at time {ts}")
+        # print(f"Wrote data point for agent {measurement['node_id']} at time {ts}")
 
     def stop(self):
         self.stop_event.set()

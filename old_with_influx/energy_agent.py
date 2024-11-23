@@ -4,13 +4,37 @@ import threading
 import subprocess
 import pynvml
 import argparse
+import socket
+import struct
+import json
 from queue import Queue, Empty
-from influxdb import InfluxDBClient
+
+class EnergyClient:
+    def __init__(self, master_ip: str, control_port: int, data_port: int, node_id: str):
+        self.master_ip = master_ip
+        self.control_port = control_port
+        self.data_port = data_port
+        self.node_id = node_id
+        self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    def connect(self):
+        try:
+            self.control_socket.connect((self.master_ip, self.control_port))
+            self.data_socket.connect((self.master_ip, self.data_port))
+            print(f"Connected to master at {self.master_ip}:{self.control_port}/{self.data_port}")
+        except Exception as e:
+            print(f"Error connecting to master: {e}")
+            raise
+
+    def close(self):
+        self.data_socket.close()
+        self.control_socket.close()
 
 class EnergyMonitor:
-    def __init__(self, sample_interval=0.1, node_id='compute1', influx_host='localhost', influx_port=8086, influx_db='energy_data', influx_user=None, influx_pass=None):
+    def __init__(self, sample_interval=0.1, client=None):
         self.sample_interval = sample_interval
-        self.node_id = node_id
+        self.client = client
         self.stop_event = threading.Event()
         self.measurements_a = Queue()
         self.measurements_b = Queue()
@@ -32,15 +56,6 @@ class EnergyMonitor:
 
         self.num_threads = 1 + int(self.gpu_available)
         self.barrier = threading.Barrier(self.num_threads)
-
-        # InfluxDB client
-        self.influx_client = InfluxDBClient(
-            host=influx_host,
-            port=influx_port,
-            username=influx_user,
-            password=influx_pass,
-            database=influx_db
-        )
 
     def run_perf_command(self):
         cmd = ["perf", "stat", "-a", "-e", "power/energy-ram/", "-e", "power/energy-pkg/", "sleep", str(self.sample_interval)]
@@ -83,6 +98,25 @@ class EnergyMonitor:
         gpu_energy = round(gpu_power * self.sample_interval, 2)
         return {'gpu_energy': gpu_energy}
 
+    def send_heartbeat(self):
+        while not self.stop_event.is_set():
+            heartbeat = {
+                'type': 'heartbeat',
+                'node_id': self.client.node_id,
+                'timestamp': time.time(),
+                'status': 'active'
+            }
+            try:
+                json_data = json.dumps(heartbeat)
+                msg_length = struct.pack('!I', len(json_data))
+                self.client.control_socket.sendall(msg_length)
+                self.client.control_socket.sendall(json_data.encode())
+                print(f"Heartbeat sent at {heartbeat['timestamp']}")
+            except Exception as e:
+                print(f"Error sending heartbeat: {e}")
+                break
+            time.sleep(5.0)
+
     def thread_function(self, name, barrier, measurements_queue, sample_interval=0.1):
         while not self.stop_event.is_set():
             barrier.wait()
@@ -122,10 +156,49 @@ class EnergyMonitor:
         filled_list = sorted(timestamp_to_measurement.items(), key=lambda x: x[0])
         return filled_list
 
+    # def process_results(self):
+    #     """
+    #     Periodically dequeue items from the result queue, handle missing timestamps,
+    #     and send the data to the coordinator.
+    #     """
+    #     while not self.stop_event.is_set():
+    #         try:
+    #             batch = []
+    #             while len(batch) < 20:
+    #                 timestamp, measurement = self.result_queue.get(timeout=1)
+    #                 batch.append((timestamp, measurement))
+    #         except Empty:
+    #             pass
+
+    #         if not batch:
+    #             continue
+    #         batch.sort(key=lambda x: x[0])
+    #         timestamps = [entry[0] for entry in batch]
+    #         missed_timestamps=[]
+    #         for i in range(len(timestamps) - 1):
+    #             if timestamps[i + 1] * 10 - timestamps[i] * 10 == 2:
+    #                 missed_timestamps.append((timestamps[i] * 10 + 1)/10)
+    #         filled_batch=self.fill_missing_timestamps(batch,missed_timestamps)
+    #         # Send to the coordinator
+    #         for timestamp, measurement in filled_batch:
+    #             data_packet = {
+    #                 'node_id': self.client.node_id,
+    #                 'timestamp': timestamp,
+    #                 'measurement': measurement
+    #             }
+    #             try:
+    #                 json_data = json.dumps(data_packet)
+    #                 msg_length = struct.pack('!I', len(json_data))
+    #                 self.client.data_socket.sendall(msg_length + json_data.encode())
+    #                 print(f"Sent data: {data_packet}")
+    #             except Exception as e:
+    #                 print(f"Error sending data to coordinator: {e}")
+    #                 break
+
     def process_results(self):
         """
         Periodically dequeue items from the result queue, handle missing timestamps,
-        and write the data to InfluxDB in batches.
+        and send the data to the coordinator in one message.
         """
         while not self.stop_event.is_set():
             try:
@@ -150,32 +223,25 @@ class EnergyMonitor:
                     missed_timestamps.append((timestamps[i] * 10 + 1) / 10)
             filled_batch = self.fill_missing_timestamps(batch, missed_timestamps)
 
-            # Prepare data points for InfluxDB
-            json_body = []
-            for timestamp, measurement in filled_batch:
-                # print(measurement)
-                measurement_a, measurement_b = measurement
-                fields = {}
-                if measurement_a:
-                    fields.update(measurement_a)
-                if measurement_b:
-                    fields.update(measurement_b)
-                json_body.append({
-                    "measurement": "energy",
-                    "tags": {
-                        "node_id": self.node_id
-                    },
-                    "time": int(timestamp * 1e9),  # Convert to nanoseconds
-                    "fields": fields
-                })
+            # Prepare the consolidated data packet
+            consolidated_data = [
+                {
+                    'node_id': self.client.node_id,
+                    'timestamp': timestamp,
+                    'measurement': measurement
+                }
+                for timestamp, measurement in filled_batch
+            ]
 
-            # Write data points to InfluxDB
+            # Send the consolidated batch to the coordinator
             try:
-                self.influx_client.write_points(json_body)
-                print(f"Wrote batch data of length: {len(filled_batch)} to InfluxDB")
+                json_data = json.dumps(consolidated_data)
+                msg_length = struct.pack('!I', len(json_data))
+                self.client.data_socket.sendall(msg_length + json_data.encode())
+                print(f"Sent batch data of length: {len(consolidated_data)}")
             except Exception as e:
-                print(f"Error writing batch data to InfluxDB: {e}")
-
+                print(f"Error sending batch data to coordinator: {e}")
+    
     def accumulator_function(self, measurements_a, measurements_b, sample_interval):
         data_a = {}
         data_b = {}
@@ -190,34 +256,32 @@ class EnergyMonitor:
                     data_a[timestamp_a] = measurement_a
             except Empty:
                 pass
-            # if measurements_b:
             try:
                 while True:
                     timestamp_b, measurement_b = measurements_b.get_nowait()
                     data_b[timestamp_b] = measurement_b
             except Empty:
                 pass
-            # print(f"data_a {data_a}")
-            # print(f"data_b {data_b}")
             all_timestamps = set(data_a.keys()) | set(data_b.keys())
             pending_timestamps = sorted(all_timestamps - processed_timestamps)
             for timestamp in pending_timestamps:
-                measurement_a = data_a.get(timestamp) 
-                measurement_b = data_b.get(timestamp) 
-                # print(f"measurement_a {measurement_a} measurement_b {measurement_a}")
+                measurement_a = data_a.get(timestamp)
+                measurement_b = data_b.get(timestamp)
                 if measurement_a is not None and measurement_b is not None:
-                    result = (measurement_a, measurement_b)
+                    result = (
+                         measurement_a,
+                         measurement_b
+                    )
                     self.result_queue.put((timestamp, result))  # Enqueue the result
-                    # print(f"timestamp, result {timestamp} {result}")
                     processed_timestamps.add(timestamp)
-                    if timestamp in data_a:
-                        del data_a[timestamp]
-                    if measurements_b and timestamp in data_b:
-                        del data_b[timestamp]
+                    del data_a[timestamp]
+                    del data_b[timestamp]
             time.sleep(0.01)
 
     def run(self):
-        result_processor_thread = threading.Thread(target=self.process_results)
+        heartbeat_thread = threading.Thread(target=self.send_heartbeat)
+        heartbeat_thread.start()
+        result_processor_thread = threading.Thread(target=self.process_results)  # New thread
         result_processor_thread.start()
         try:
             thread_a = threading.Thread(target=self.thread_function, args=("cpu_memory", self.barrier, self.measurements_a, self.sample_interval))
@@ -235,11 +299,14 @@ class EnergyMonitor:
             print("\nShutting down...")
             self.stop_event.set()
         finally:
-            result_processor_thread.join()
+            heartbeat_thread.join()
+            result_processor_thread.join()  # Join the result processor thread
             thread_a.join()
             if thread_b:
                 thread_b.join()
             accumulator_thread.join()
+            if self.client:
+                self.client.close()
             if self.gpu_available:
                 pynvml.nvmlShutdown()
 
@@ -252,21 +319,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Energy Monitoring Tool")
     parser.add_argument('--sampling_time', type=float, default=0.1, help='Sampling time in seconds')
     parser.add_argument('--node_id', type=str, default='compute1', help='Node ID')
-    parser.add_argument('--influx_host', type=str, default='localhost', help='InfluxDB host')
-    parser.add_argument('--influx_port', type=int, default=8086, help='InfluxDB port')
-    parser.add_argument('--influx_db', type=str, default='energy_data', help='InfluxDB database name')
-    parser.add_argument('--influx_user', type=str, default=None, help='InfluxDB username')
-    parser.add_argument('--influx_pass', type=str, default=None, help='InfluxDB password')
+    parser.add_argument('--master_ip', type=str, default='10.52.3.53', help='Master IP address')
+    parser.add_argument('--control_port', type=int, default=5000, help='Control port')
+    parser.add_argument('--data_port', type=int, default=5001, help='Data port')
     args = parser.parse_args()
 
-    monitor = EnergyMonitor(
-        sample_interval=args.sampling_time,
-        node_id=args.node_id,
-        influx_host=args.influx_host,
-        influx_port=args.influx_port,
-        influx_db=args.influx_db,
-        influx_user=args.influx_user,
-        influx_pass=args.influx_pass
+    client = EnergyClient(
+        master_ip=args.master_ip,
+        control_port=args.control_port,
+        data_port=args.data_port,
+        node_id=args.node_id
     )
+    try:
+        client.connect()
+        print(f"Client successfully connected to master")
+    except Exception as e:
+        print(f"Failed to connect to master: {e}")
+        exit(1)
 
+    monitor = EnergyMonitor(sample_interval=args.sampling_time, client=client)
     monitor.run()
