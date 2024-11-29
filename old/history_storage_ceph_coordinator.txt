@@ -457,3 +457,973 @@
   457  exit
   458  history
   459  history > history_storage1.txt
+    1  sudo apt update
+    2  sudo apt upgrade
+    3  sudo apt install -y wget build-essential linux-headers-$(uname -r)
+    4  sudo wget -q -O - https://www.beegfs.io/release/beegfs_7.4.5/gpg/GPG-KEY-beegfs | apt-key add -
+    5  sudo wget -q -O - https://www.beegfs.io/release/beegfs_7.4.5/gpg/GPG-KEY-beegfs |sudo  apt-key add -
+    6  clear
+    7  sudo wget https://www.beegfs.io/release/beegfs_7.4.5/dists/beegfs-jammy.list -O /etc/apt/sources.list.d/beegfs.list
+    8  sudo apt install apt-transport-https
+    9  sudo apt update
+   10  sudo apt install -y wget build-essential linux-headers-$(uname -r)
+   11  sudo apt install -y beegfs-mgmtd beegfs-meta beegfs-storage beegfs-utils
+   12  sudo mkdir -p /data/beegfs/mgmtd
+   13  sudo mkdir -p /data/beegfs/meta
+   14  sudo mkdir -p /data/beegfs/storage
+   15  sudo /opt/beegfs/sbin/beegfs-setup-mgmtd -p /data/beegfs/mgmtd 
+   16  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   17  sudo /etc/hosts
+   18  sudo vim /etc/hosts
+   19  ping storage-1
+   20  clear
+   21  ip a
+   22  ip route
+   23  sudo firewall-cmd --zone=trusted --add-source=<your_subnet_cidr/netmask>
+   24  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22 
+   25  sudo apt install iperf3
+   26  iperf3 -s
+   27  cleae
+   28  clear
+   29  vim update_bash.sh
+   30  chmod +x update_bash.sh 
+   31  ./update_bash.sh 
+   32  c
+   33  source .bashrc 
+   34  c
+   35  sudo /opt/beegfs/sbin/beegfs-setup-meta -p /data/beegfs/meta -s 1 -m storage-1 
+   36  sudo /opt/beegfs/sbin/beegfs-setup-storage -p /data/beegfs/storage -s 1 -i 1 -m storage-1
+   37  sudo systemctl start beegfs-mgmtd
+   38  sudo systemctl start beegfs-meta
+   39  sudo systemctl start beegfs-storage
+   40  sudo systemctl enable beegfs-mgmtd
+   41  sudo systemctl enable beegfs-meta
+   42  sudo systemctl enable beegfs-storage
+   43  sudo systemctl status beegfs-mgmtd
+   44  c
+   45  sudo vim /etc/beegfs/beegfs-meta.conf
+   46  sudo vim /etc/beegfs/beegfs-storage.conf
+   47  sudo systemctl start beegfs-meta
+   48  sudo systemctl start beegfs-storage
+   49  sudo systemctl enable beegfs-meta
+   50  sudo systemctl enable beegfs-storage
+   51  beegfs-ctl --listnodes --nodetype=management
+   52  sudo systemctl status beegfs-mgmtd
+   53  sudo systemctl status beegfs-meta.service 
+   54  sudo systemctl status beegfs-storage.service 
+   55  sudo systemctl status beegfs-mgmtd.service 
+   56  sudo systemctl status beegfs-mgmtd
+   57  sudo systemctl status beegfs-storage
+   58  sudo systemctl status beegfs-meta.service 
+   59  beegfs-ctl --listnodes --nodetype=management
+   60  c
+   61  sudo journalctl -u beegfs-mgmtd -n 50
+   62  sudo journalctl -u beegfs-stoarge -n 50
+   63  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   64  sudo vim /etc/beegfs/beegfs-meta.conf
+   65  sudo vim /etc/beegfs/beegfs-storage.conf 
+   66  c
+   67  sudo systemctl restart beegfs-mgmtd
+   68  sudo systemctl restart beegfs-meta
+   69  sudo systemctl restart beegfs-storage
+   70  beegfs-ctl --listnodes --nodetype=management
+   71  clear
+   72  sudo vim /etc/beegfs/beegfs-mgmtd.conf
+   73  sudo systemctl restart beegfs-mgmtd
+   74  beegfs-ctl --listnodes --nodetype=management
+   75  c
+   76  sudo vim /etc/beegfs/beegfs-meta.conf 
+   77  sudo vim /etc/beegfs/beegfs-storage.conf 
+   78  sudo systemctl restart beegfs-mgmtd
+   79  sudo systemctl restart beegfs-meta
+   80  sudo systemctl restart beegfs-storage
+   81  sudo systemctl status beegfs-mgmtd
+   82  sudo systemctl status beegfs-meta.service 
+   83  sudo systemctl status beegfs-storage.service 
+   84  beegfs-ctl --listnodes --nodetype=management
+   85  c
+   86  sudo apt install netperf
+   87  sudo apt install netstat
+   88  sudo netstat -tulpn | grep beegfs
+   89  sudo ss -tulpn 
+   90  clear
+   91  sudo firewall-cmd --permanent --add-port=8008/tcp  # Management
+   92  sudo firewall-cmd --permanent --add-port=8005/tcp  # Metadata
+   93  sudo firewall-cmd --permanent --add-port=8003/tcp  # Storage
+   94  sudo firewall-cmd --permanent --add-port=8004/tcp  # Storage Transfer
+   95  sudo firewall-cmd --permanent --add-port=8006/tcp  # Helperd
+   96  sudo firewall-cmd --reload
+   97  sudo firewall-cmd --list-all
+   98  beegfs-ctl --listnodes --nodetype=management
+   99  sudo vim /etc/beegfs/interfaces.conf
+  100  sudo firewall-cmd --reloadc
+  101  c
+  102  lsblk 
+  103  c
+  104  clear
+  105  ssh-keygen -t rsa -b 4096
+  106  cat .ssh/id_rsa.pub 
+  107  vim .ssh/authorized_keys 
+  108  c
+  109  source .bashrc 
+  110  c
+  111  dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
+  112  sudo dd if=/dev/random of=/etc/beegfs/connauthfile bs=128 count=1
+  113  chown cc:cc /etc/beegfs/connauthfile
+  114  sudo chown cc:cc /etc/beegfs/connauthfile
+  115  sudo chmod 400 /etc/beegfs/connauthfile
+  116  scp /etc/beegfs/connauthfile cc@storage-2
+  117  scp /etc/beegfs/connauthfile cc@storage-3
+  118  scp /etc/beegfs/connauthfile cc@storage-2:~/
+  119  scp /etc/beegfs/connauthfile cc@storage-3:~/
+  120  cd /etc/beegfs/
+  121  sudo chown root:root /etc/beegfs/connauthfile
+  122  ls
+  123  ls -a
+  124  ll
+  125  cd /var/log
+  126  cat beegfs-mgmtd.log
+  127  cat beegfs-meta.log
+  128  cat beegfs-meta.log.old-1
+  129  cat beegfs-meta.log.old-2
+  130  cat beegfs-storage.log
+  131  cat beegfs-storage.log.old-1
+  132  cd 
+  133  sudo ufw status
+  134  sudo journalctl -u beegfs-mgmtd -n 100
+  135  ip addr show
+  136  ping storage-2
+  137  ping storage-3
+  138  c
+  139  sudo firewall-cmd --list-all
+  140  cat /var/log/beegfs-meta.log.old-2
+  141  for service in beegfs-mgmtd beegfs-meta beegfs-storage; do     echo "Checking $service:";     sudo systemctl status $service; done
+  142  c
+  143  beegfs-ctl --listnodes --nodetype=metadata
+  144  sudo systemctl status beegfs-mgmtd
+  145  sudo ss -tulpn
+  146  sudo ss -tulpn | grep beegfs
+  147  beegfs-check-servers
+  148  beegfs-ctl --listnodes --nodetype=all --details
+  149  beegfs-ctl --getentryinfo /data/beegfs
+  150  cd /etc/beegfs/
+  151  cat beegfs-eventlistener.conf
+  152  cmsh
+  153  cat /var/log/beegfs-meta.log.old-2
+  154  cat /var/log/beegfs-meta.log.old-1
+  155  ip a
+  156  watch sudo ceph -s
+  157  c
+  158  watch sudo ceph -s
+  159  c
+  160  watch -n 1 'sudo ceph -s'
+  161  c
+  162  sudo ceph osd pool ls
+  163  sudo ceph osd pool get size
+  164  sudo ceph osd pool get cephfs.cephfs.meta size
+  165  sudo ceph osd pool get cephfs.cephfs.meta min_size
+  166  c
+  167  watch -n 1 'sudo ceph -s'
+  168  ls
+  169  sudo cp /etc/ceph/admin.secret ~/
+  170  sudo chown cc:cc ~/admin.secret
+  171  mv admin.secret admin.secret.tmp
+  172  sudo scp admin.secret.tmp  cc@compute-1:~/admin.secret
+  173  scp admin.secret.tmp  cc@compute-1:~/admin.secretc
+  174  scp admin.secret.tmp  cc@compute-2:~/admin.secret
+  175  scp ~/ceph.client.admin.keyring cc@compute-1:~/
+  176  scp ~/ceph.client.admin.keyring cc@compute-2:~/
+  177  ls
+  178  scp /etc/ceph/ceph.conf cc@compute-1:~/
+  179  scp /etc/ceph/ceph.conf cc@compute-2:~/
+  180  c
+  181  watch -n1 "sudo ceph -s"
+  182  lsblk
+  183  lsb_release -a
+  184  ip a
+  185  clear
+  186  ip a
+  187  sudo tee -a /etc/hosts << EOF
+  188  10.52.3.6 storage-1
+  189  10.52.0.165 storage-volume-2
+  190  10.52.1.64 storage-volume-3
+  191  EOF
+  192  cat /etc/hosts
+  193  o
+  194  sudo apt update
+  195  sudo apt install -y python3 python3-pip curl
+  196  clear
+  197  curl --silent --remote-name --location https://github.com/ceph/ceph/raw/quincy/src/cephadm/cephadm
+  198  ls
+  199  cat update_bash.sh 
+  200  scp update_bash.sh cc@storage-volume-3
+  201  scp update_bash.sh cc@storage-volume-3:~/
+  202  cd .ssh/
+  203  cat id_rsa.pub 
+  204  scp update_bash.sh cc@storage-volume-3:~/
+  205  cd 
+  206  scp update_bash.sh cc@storage-volume-3:~/
+  207  scp update_bash.sh cc@storage-volume-2:~/
+  208  c
+  209  chmod +x cephadm
+  210  sudo ./cephadm install
+  211  sudo ./cephadm add-repo --release quincy
+  212  sudo apt update
+  213  sudo apt install -y ceph-common
+  214  c
+  215  sudo cephadm bootstrap --mon-ip 10.52.3.6     --initial-dashboard-password "YourSecurePassword" \
+  216  c
+  217  sudo apt install docker.io
+  218  c
+  219  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname
+  220  sudo cat /etc/ceph/ceph.pub
+  221  c
+  222  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  223  sudo rm -rf /var/lib/ceph/
+  224  sudo rm -rf /var/log/ceph/
+  225  sudo rm -rf /etc/ceph/
+  226  sudo rm -rf /var/run/ceph/
+  227  sudo docker ps -a | grep ceph | awk '{print $1}' | xargs -r sudo docker rm -f
+  228  c
+  229  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa
+  230  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa --ssh-public-key /home/cc/.ssh/id_rsa.pub
+  231  c
+  232  sudo ceph -s
+  233  ssh cc@storage-volume-2 "hostname"
+  234  ssh cc@storage-volume-3 "hostname"
+  235  sudo ceph orch host add storage-volume-2 10.52.0.165
+  236  sudo ceph orch host add storage-volume-3 10.52.1.64
+  237  sudo ceph orch host ls
+  238  sudo ceph orch device ls
+  239  clear
+  240  sudo ceph orch device ls
+  241  sudo ceph orch host add storage-volume-3 10.52.1.64
+  242  sudo ceph orch host ls
+  243  sudo ceph orch device ls
+  244  c
+  245  sudo ceph orch host rescan storage-volume-3
+  246  sudo ceph orch device ls
+  247  sudo ceph orch ps --hostname storage-volume-3                                                                                     CCCCCCCC
+  248  sudo ceph orch host rescan storage-volume-3
+  249  c;
+  250  ssh cc@storage-volume-3 "hostname"
+  251  sudo ceph orch host rescan storage-volume-3
+  252  sudo ceph orch ps --hostname storage-volume-3
+  253  c
+  254  sudo ceph orch host rescan storage-volume-2
+  255  sudo ceph orch device ls
+  256  sudo ceph orch host rescan storage-volume-2
+  257  sudo ceph orch device ls
+  258  clear
+  259  sudo ceph orch device ls
+  260  sudo ceph orch host rescan storage-volume-2
+  261  sudo ceph orch device ls
+  262  sudo ceph orch host ls
+  263  sudo ceph orch host rm storage-volume-3
+  264  sudo ceph orch host drain storage-volume-3
+  265  sudo ceph orch host drain storage-volume-2
+  266  c
+  267  sudo ceph orch host rm storage-volume-3
+  268  sudo ceph orch host rm storage-volume-2
+  269  sudo ceph orch host drain storage-volume-2
+  270  sudo ceph orch host ls
+  271  c
+  272  sudo ceph -s
+  273  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  274  sudo cephadm rm-cluster --fsid $(sudo cephadm ls ) --force
+  275  c
+  276  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  277  sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4
+  278  sudo cephadm ls | grep -o '"fsid":"[^"]*' 
+  279  sudo cephadm ls 
+  280  c
+  281  sudo cephadm rm-cluster --fsid $(sudo cephadm ls | grep -o '"fsid":"[^"]*' | cut -d'"' -f4) --force
+  282  sudo ceph fsid
+  283  c
+  284  sudo systemctl stop ceph.target
+  285  sudo systemctl disable ceph.target
+  286  sudo docker ps -a | grep ceph | awk '{print $1}' | xargs -r sudo docker rm -f
+  287  sudo rm -rf /var/lib/ceph/
+  288  sudo rm -rf /var/log/ceph/
+  289  sudo rm -rf /etc/ceph/
+  290  sudo rm -rf /var/run/ceph/
+  291  sudo rm -rf /usr/sbin/cephadm
+  292  sudo docker image prune -a --filter "label=io.ceph.daemon"
+  293  ls
+  294  sudo ./cephadm install
+  295  sudo ./cephadm add-repo --release quincy
+  296  sudo apt update
+  297  sudo apt install -y ceph-common
+  298  c
+  299  history | grep "bootstrap --mon-ip"
+  300  sudo cephadm bootstrap --mon-ip 10.52.3.6 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa --ssh-public-key /home/cc/.ssh/id_rsa.pub
+  301  sudo ceph -s
+  302  c
+  303  sudo ceph orch host add storage-volume-2 10.52.0.165
+  304  sudo ceph orch host ls
+  305  sudo ceph orch device ls
+  306  c
+  307  sudo ceph orch apply osd --all-available-devices
+  308  sudo ceph orch ps
+  309  c
+  310  sudo ceph osd df
+  311  sudo ceph osd tree
+  312  sudo ceph osd status
+  313  c
+  314  sudo ceph mon stat
+  315  sudo ceph health detail
+  316  sudo ceph osd status
+  317  sudo ceph osd tree
+  318  sudo ceph mon stat
+  319  c
+  320  sudo ceph mgr stat
+  321  sudo ceph orch ls
+  322  sudo ceph orch ps
+  323  c
+  324  sudo ceph osd status
+  325  scp update_bash.sh 
+  326  sudo vim /etc/hosts
+  327  scp update_bash.sh cc@storage-volume-1:~/
+  328  c
+  329  ls
+  330  scp cephadm cc@storage-volume-1:~/
+  331  c
+  332  sudo vim /etc/hosts
+  333  sudo ceph orch host ls
+  334  sudo ceph orch host add storage-volume-1 10.52.3.76
+  335  sudo ceph orch host add storage-volume-1 10.52.3.76c
+  336  c
+  337  vim /etc/hosts
+  338  sudo vim /etc/hosts
+  339  ls
+  340  scp cephadm update_bash.sh cc@compute-1
+  341  scp cephadm update_bash.sh cc@compute-1:~/
+  342  scp cephadm update_bash.sh cc@storage-volume-1:~/
+  343  ssh-keygen -f "/home/cc/.ssh/known_hosts" -R "storage-volume-1"
+  344  scp cephadm update_bash.sh cc@storage-volume-1:~/
+  345  scp cephadm update_bash.sh cc@storage-2:~/
+  346  scp /etc/ceph/ceph.conf cc@storage-2:~/
+  347  c
+  348  scp /etc/ceph/ceph.client.admin.keyring cc@storage-2:~/
+  349  sudo scp /etc/ceph/ceph.client.admin.keyring cc@storage-2:~/
+  350  cd /etc/ceph/
+  351  cat ceph.client.admin.keyring 
+  352  sudo cat ceph.client.admin.keyring 
+  353  c
+  354  sudo ceph orch host add storage-volume-1 10.52.3.76
+  355  sudo ceph orch host ls
+  356  sudo ceph orch host rescan storage-volume-1
+  357  sudo ceph orch device ls
+  358  c
+  359  sudo ceph orch daemon add osd storage-volume-1:/dev/sda
+  360  sudo ceph orch device ls
+  361  sudo ceph orch host rescan storage-volume-1
+  362  sudo ceph orch host rescan storage-volume-2
+  363  watch sudo ceph orch ps
+  364  c
+  365  ls
+  366  scp ceph.client.admin.keyring cc@storage:~/
+  367  scp ceph.client.admin.keyring cc@storage-2:~/
+  368  sudo scp ceph.client.admin.keyring cc@storage-2:~/
+  369  ssh cc@storage-2 hostname
+  370  ssh-copy-id cc@storage-2
+  371  sudo scp ceph.client.admin.keyring cc@storage-2:~/
+  372  c
+  373  sudo cp /etc/ceph/ceph.client.admin.keyring ~/
+  374  cd 
+  375  c
+  376  sudo chown cc:cc ~/ceph*
+  377  ll
+  378  c
+  379  scp ~/ceph.client.admin.keyring cc@storage-2:~/
+  380  sudo ceph orch device ls
+  381  sudo ceph osd tree
+  382  sudo ceph osd pool ls
+  383  sudo ceph osd pool get rbd size
+  384  sudo ceph osd pool get size
+  385  c
+  386  sudo ceph osd pool set rbd size 2
+  387  sudo ceph osd pool ls
+  388  sudo ceph osd pool get rbd size
+  389  sudo ceph osd pool get testpool size
+  390  sudo ceph osd pool get testpool min_size
+  391  sudo ceph osd pool get .mgr size
+  392  sudo ceph osd pool get .mgr min_size
+  393  sudo ceph osd pool set testpool size 2
+  394  sudo ceph osd pool set testpool min_size 1
+  395  sudo ceph osd pool set .mgr size 2
+  396  sudo ceph osd pool set .mgr min_size 1
+  397  sudo ceph fs volume create cephfs
+  398  sudo ceph fs status
+  399  c
+  400  sudo ceph auth get-key client.admin | sudo tee /etc/ceph/admin.secret
+  401  c
+  402  sudo scp /etc/ceph/admin.secret cc@storage-2:~/
+  403  sudo cp /etc/ceph/admin.secret ~/
+  404  sudo scp admin.secret cc@storage-2:~/
+  405  ls
+  406  ll
+  407  su
+  408  sudo chown cc:cc ~/admin.secret 
+  409  ll
+  410  sudo scp admin.secret cc@storage-2:~/
+  411  mv admin.secret admin.secret.tmp
+  412  sudo scp admin.secret.tmp  cc@storage-2:~/admin.secret
+  413  ssh cc@storage-2 hostname
+  414  cat admin.secret.tmp 
+  415  c
+  416  sudo cp /etc/ceph/admin.secret ~/admin.secret.tmp
+  417  sudo chown cc:cc ~/admin.secret.tmp
+  418  scp ~/admin.secret.tmp cc@storage-2:~/admin.secret
+  419  rm ~/admin.secret.tmp 
+  420  ls
+  421  sudo ceph fs status
+  422  sudo ceph fs volume create cephfsc
+  423  sudo ceph fs status
+  424  sudo ceph fs volume rm cephfsc
+  425  sudo ceph fs volume rm cephfsc --yes-i-really-mean-it
+  426  sudo ceph fs status
+  427  sudo ceph fs status cephfsc
+  428  sudo ceph fs fail cephfsc
+  429  sudo ceph fs rm cephfsc --yes-i-really-mean-it
+  430  sudo ceph osd pool rm cephfs.cephfsc.meta cephfs.cephfsc.meta --yes-i-really-really-mean-it
+  431  sudo ceph tell mon.* injectargs '--mon-allow-pool-delete=true'
+  432  sudo ceph osd pool rm cephfs.cephfsc.meta cephfs.cephfsc.meta --yes-i-really-really-mean-it
+  433  sudo ceph osd pool rm cephfs.cephfsc.data cephfs.cephfsc.data --yes-i-really-really-mean-it
+  434  c
+  435  sudo ceph fs ls
+  436  sudo ceph osd pool ls
+  437  sudo ceph fs status
+  438  c
+  439  sudo ceph fs status
+  440  sudo ceph osd tree
+  441  sudo ceph -s
+  442  watch -n1 "sudo ceph -s"
+  443  sudo vim /etc/hosts
+  444  ls
+  445  scp cephadm update_bash.sh cc@compute-1:~/
+  446  ssh-keygen -f "/home/cc/.ssh/known_hosts" -R "compute-1"
+  447  scp cephadm update_bash.sh cc@compute-1:~/
+  448  scp cephadm update_bash.sh cc@compute-2:~/
+  449  c
+  450  ip a
+  451  sudo vim /etc/hosts
+  452  ls
+  453  cd /etc/ceph/
+  454  cat admin.secret 
+  455  history
+  456  cd /sys/class/powercap/
+  457  exit
+  458  history
+  459  history > history_storage1.txt
+  460  ls
+  461  cat history_storage1.txt 
+  462  pwd
+  463  ls
+  464  c
+  465  ls
+  466  cd 
+  467  cd /
+  468  cd etc/
+  469  c 
+  470  cd 
+  471  history
+  472  ome/cc/.ssh/known_hosts" -R "compute-1"
+  473  sudo ceph -s
+  474  cd /mnt/cephfs/
+  475  cd /mnt/
+  476  sudo mkdir -p /mnt/cephfs
+  477  cd /etc/ceph/
+  478  sudo mount -t ceph storage-1:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+  479  cd 
+  480  ceph
+  481  sudo ceph -s
+  482  cd /mnt/
+  483  cd cephfs/
+  484  cd coco_data/
+  485  cd ../
+  486  cd cephfs/
+  487  c
+  488  sudo mkdir -p imagenet
+  489  cd imagenet/
+  490  wget https://image-net.org/data/winter21_whole.tar.gz
+  491  pip3 install kaggle
+  492  kaggle competitions download -c imagenet-object-localization-challenge
+  493  rm -rf /tmp/autogen && mkdir -p /tmp/autogen && unzip -qo /tmp/autogen.zip -d /tmp/autogen &&
+  494  sudo apt install unzip
+  495  rm -rf /tmp/autogen && mkdir -p /tmp/autogen && unzip -qo /tmp/autogen.zip -d /tmp/autogen && mv /tmp/autogen/autogen-*/* /tmp/autogen && rm -rf /tmp/autogen/autogen-* && sudo chmod a+rx /tmp/autogen/autogen.sh
+  496  c
+  497  kaggle competitions download -c imagenet-object-localization-challenge
+  498  sudo apt install kaggle
+  499  sudo apt install kaggle-cli
+  500  kaggle competitions download -c imagenet-object-localization-challenge
+  501  pip3 install kaggle
+  502  pip3 show kaggle
+  503  export PATH=$PATH:~/.local/bin
+  504  export PATH=$PATH:/home/cc/.local/lib/python3.10/site-packages
+  505  kaggle --version
+  506  mkdir -p ~/.kaggle
+  507  cd 
+  508  vim kaggle.json
+  509  c
+  510  chmod 600 ~/.kaggle/kaggle.json
+  511  c
+  512  screen -ls
+  513  screen -S download
+  514  screen -r download
+  515  c
+  516  exit
+  517  watch "ss -tiunp"
+  518  c
+  519  watch -n1 "ss -ti | grep 10.52.2.109"
+  520  watch -n1 "ss -ti | grep 10.52.2."
+  521  watch -n1 "ss -ti | grep 10.52."
+  522  watch -n1 "ss -ti | grep 10.52.2.109"
+  523  watch -n1 "ss -ti | grep 10.52.1.52"
+  524  c
+  525  ip a
+  526  watch -n1 "ss -ti | grep 10.52.2.109"
+  527  cd /mnt/
+  528  cd cephfs/
+  529  ls
+  530  cd ../cephfs/
+  531  ls
+  532  exit
+  533  ip a
+  534  sudo apt install iperf3
+  535  c
+  536  ip a
+  537  iperf3 -s
+  538  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+  539  iperf3 -s
+  540  c
+  541  sudo apt-get install libtool pkg-config build-essential autoconf automake
+  542  git clone https://github.com/zeromq/libzmq.git
+  543  c
+  544  cd 
+  545  cd libzmq/
+  546  ./autogen.sh 
+  547  ./configure
+  548  make
+  549  sudo make install
+  550  cd 
+  551  cd libzmq/
+  552  cd tools/
+  553  cd ../perf/
+  554  c
+  555  ip a
+  556  ./local_thr tcp://eno12399np0:5555 100000 100000
+  557  c
+  558  ./local_thr tcp://eno12399np0:5555 100000 100000
+  559  c
+  560  ./local_thr tcp://eno12399np0:5555 100000 100000
+  561  ./local_thr tcp://eno12399np0:5555 1000 100000
+  562  ./local_thr tcp://eno12399np0:5555 10000 100000
+  563  ./local_thr tcp://eno12399np0:5555 100000 100000
+  564  c
+  565  ./local_thr tcp://eno12399np0:5555 100000 100000
+  566  c
+  567  ./local_thr tcp://eno12399np0:5555 100000 100000
+  568  cd /etc/ceph/
+  569  pwd
+  570  cd 
+  571  cat /etc/hosts
+  572  ceph
+  573  ssudo ceph
+  574  sudo ceph
+  575  c
+  576  sudo ceph -s
+  577  history | grep firewalld
+  578  history | grep firewal
+  579  sudo firewall-cmd --zone=trusted --add-source=128.205.220.219/32
+  580  cat /etc/host
+  581  cat /etc/hosts
+  582  sudo firewall-cmd --zone=trusted --add-source=128.205.220.219
+  583  c
+  584  sudo ceph -s
+  585  sudo cat /etc/ceph/admin.secret 
+  586  c
+  587  curl 129.114.109.167:3300
+  588  exit
+  589  watch -n1 "sudo ceph -s"
+  590  cd /mnt/cephfs/
+  591  watch -n1 "sudo ceph -s"
+  592  cd /mnt/cephfs/
+  593  cd imagenet/
+  594  sudo sh -c "wget https://raw.githubusercontent.com/PatrickHua/EasyImageNet/main/valprep.sh mkdir val && mv ILSVRC2012_img_val.tar val/ && mv valprep.sh val/ && cd val && tar -xvf ILSVRC2012_img_val.tar && sh valprep.sh; cd .."
+  595  sudo sh -c "wget https://raw.githubusercontent.com/PatrickHua/EasyImageNet/main/valprep.sh && mkdir val && mv ILSVRC2012_img_val.tar val/ && mv valprep.sh val/ && cd val && tar -xvf ILSVRC2012_img_val.tar && sh valprep.sh; cd .."
+  596  c
+  597  cd
+  598  c
+  599  kaggle competitions download -c imagenet-object-localization-challenge
+  600  cd 
+  601  cd /mnt/cephfs/
+  602  mv ~/imagenet-object-localization-challenge.zip ./
+  603  sudo mv ~/imagenet-object-localization-challenge.zip ./
+  604  cd 
+  605  c
+  606  screen -ls
+  607  screen -dr download
+  608  sudo ceph fs status
+  609  sudo ceph -s
+  610  watch -n1 "sudo ceph -s"
+  611  cd /mnt/cephfs/imagenet/
+  612  sudo rm valprep.sh.1 
+  613  sudo sh -c "wget https://raw.githubusercontent.com/PatrickHua/EasyImageNet/main/valprep.sh && mkdir val && mv ILSVRC2012_img_val.tar val/ && mv valprep.sh val/ && cd val && tar -xvf ILSVRC2012_img_val.tar && sh valprep.sh; cd .."
+  614  c
+  615  exit
+  616  screen -ls
+  617  screen -dr download 
+  618  exit
+  619  c
+  620  ls
+  621  git clone https://github.com/H-jamil/MultiNodeEnergyTracker.git
+  622  cd MultiNodeEnergyTracker/
+  623  vim energy_agent.py 
+  624  python3 energy_agent.py 
+  625  pip3 install pynvml
+  626  python3 energy_agent.py 
+  627  sudo python3 energy_agent.py 
+  628  which python
+  629  which python3
+  630  sudo /usr/bin/python3 energy_agent.py 
+  631  sudo -E /usr/bin/python3 energy_agent.py 
+  632  c
+  633  sudo -E /usr/bin/python3 energy_agent.py 
+  634  c
+  635  vim energy_agent.py 
+  636  sudo -E /usr/bin/python3 energy_agent.py 
+  637  vim energy_agent.py 
+  638  sudo -E /usr/bin/python3 energy_agent.py 
+  639  c
+  640  sudo -E /usr/bin/python3 energy_agent.py 
+  641  c
+  642  vim energy_agent.py 
+  643  python3 energy_agent.py 
+  644  sudo -E /usr/bin/python3 energy_agent.py 
+  645  watch -n1 "sudo ceph -s"
+  646  c
+  647  screen -ls
+  648  screen -S e_agent
+  649  screen -r e_agent
+  650  c
+  651  date
+  652  c
+  653  date +%H:%M:%S:%N
+  654  c
+  655  watch -n1 "sudo ceph -s"
+  656  c
+  657  screen -r e_agent
+  658  c
+  659  screen -r e_agent
+  660  cd MultiNodeEnergyTracker/
+  661  c
+  662  screen -r e_agent
+  663  cd MultiNodeEnergyTracker/
+  664  vim energy_agent.py 
+  665  c
+  666  screen -r e_agent
+  667  sudo apt install bmon -y
+  668  c
+  669  ip a
+  670  sudo bmon -p -b eno12399np0
+  671  c
+  672  sudo bmon -p eno12399np0
+  673  sudo bmon -pb eno12399np0
+  674  sudo bmon -p eno12399np0
+  675  c
+  676  screen -ls
+  677  ls
+  678  cd libzmq/perf/
+  679  history | grep local_thr
+  680  c
+  681  ip a
+  682  history | grep local_thr
+  683  c
+  684  ./local_thr tcp://eno12399np0:5555 100000 100000
+  685  ./local_thr tcp://10.52.3.6:5555 100000 100000
+  686  history | grep firewall
+  687  c
+  688  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+  689  iperf3 -s
+  690  c
+  691  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  692  sudo ./local_thr tcp://10.52.3.6:5555 100000 1000000
+  693  c
+  694  sudo ./local_thr tcp://10.52.3.6:5555 100000 1000000
+  695  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  696  c
+  697  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  698  c
+  699  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  700  c
+  701  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  702  c
+  703  sudo ./local_thr tcp://10.52.3.6:5555 100000 100000
+  704  c
+  705  sudo ./local_thr tcp://10.52.3.6:5555 1000000 100000
+  706  c
+  707  ip a
+  708  c
+  709  sudo ./local_thr tcp://10.52.3.6:5555 1000000 100000
+  710  c
+  711  cd MultiNodeEnergyTracker/
+  712  sudo -E /usr/bin/python3 energy_agent.py
+  713  c
+  714  sudo -E /usr/bin/python3 energy_agent.py
+  715  c
+  716  sudo -E /usr/bin/python3 energy_agent.py
+  717  c
+  718  sudo -E /usr/bin/python3 energy_agent.py
+  719  c
+  720  sudo -E /usr/bin/python3 energy_agent.py
+  721  c
+  722  sudo -E /usr/bin/python3 energy_agent.py
+  723  c
+  724  cat /etc/hosts
+  725  c
+  726  sudo -E /usr/bin/python3 energy_agent.py
+  727  c
+  728  sudo -E /usr/bin/python3 energy_agent.py
+  729  c
+  730  vim energy_agent.py 
+  731  c
+  732  sudo -E /usr/bin/python3 energy_agent.py
+  733  c
+  734  ls
+  735  sudo -E /usr/bin/python3 energy_monitor.py 
+  736  c
+  737  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  738  sudo -E /home/cc/.pyenv/shims/python3 energy_agent.py --node_id=storage1
+  739  c
+  740  sudo -v
+  741  sudo -E /usr/bin/python3 energy_monitor.py 
+  742  c
+  743  ll -a
+  744  c
+  745  which python3
+  746  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  747  c
+  748  vim energy_monitor.py 
+  749  vim energy_agent.py 
+  750  c
+  751  vim energy_agent.py 
+  752  c
+  753  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  754  clear
+  755  sudo perf stat -a -e power/energy-pkg/ -e power/energy-ram/ sleep 0.1
+  756  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  757  c
+  758  vim energy_agent.py 
+  759  c
+  760  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  761  c
+  762  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  763  c
+  764  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  765  c
+  766  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  767  c
+  768  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  769  c
+  770  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  771  c
+  772  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  773  c
+  774  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  775  c
+  776  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  777  c
+  778  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  779  c
+  780  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  781  c
+  782  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  783  c
+  784  exit
+  785  ls
+  786  cd ceph/environment_setup/
+  787  chmod +x part1.sh part2.sh 
+  788  ./part1.sh 
+  789  source ~/.bashrc 
+  790  c
+  791  ./part2.sh 
+  792  source ~/.bashrc 
+  793  pyenv virtualenv 3.10.1 training_gpu
+  794  c
+  795  pyenv activate training_gpu 
+  796  cd 
+  797  cd MultiNodeEnergyTracker/
+  798  c
+  799  which python
+  800  pip install pynvml
+  801  sudo -E /home/cc/.pyenv/shims/python
+  802  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  803  c
+  804  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  805  c
+  806  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  807  c
+  808  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  809  c
+  810  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  811  c
+  812  c
+  813  sudo apt install linux-tools-`uname -r`
+  814  c
+  815  sudo apt install linux-tools-`uname -r`
+  816  c
+  817  perf list | grep energy
+  818  c
+  819  cd MultiNodeEnergyTracker/
+  820  git stash
+  821  git pull
+  822  ls
+  823  c
+  824  screen -ls 
+  825  screen -dr e_agent 
+  826  c
+  827  screen -dr e_agent 
+  828  c
+  829  screen -dr e_agent 
+  830  screen -ls
+  831  sudo -E /usr/bin/python3 energy_agent.py --node_id=storage1
+  832  c
+  833  pyenv activate training-gpu
+  834  source ~/.bashrc 
+  835  pyenv activate training_gpu 
+  836  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  837  pyenv activate training_gpu 
+  838  cd MultiNodeEnergyTracker/
+  839  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  840  c
+  841  screen -dr e_coordinator
+  842  screen -ls
+  843  exit
+  844  c
+  845  screen -ls
+  846  pyenv activate training_gpu 
+  847  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  848  cd MultiNodeEnergyTracker/
+  849  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  850  c
+  851  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  852  c
+  853  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  854  c
+  855  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  856  c
+  857  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  858  c
+  859  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  860  c
+  861  sudo -E /home/cc/.pyenv/shims/python energy_agent.py --node_id=storage1
+  862  c
+  863  git stash
+  864  git pull
+  865  c
+  866  sudo -E /home/cc/.pyenv/shims/python energy_agent_wo_gpu.py --node_id=storage1
+  867  c
+  868  sudo -E /home/cc/.pyenv/shims/python energy_agent_wo_gpu.py --node_id=storage1
+  869  c
+  870  exit
+  871  curl -sL https://repos.influxdata.com/influxdb.key | sudo apt-key add -
+  872  echo "deb https://repos.influxdata.com/ubuntu focal stable" | sudo tee /etc/apt/sources.list.d/influxdb.list
+  873  sudo apt update
+  874  sudo apt install influxdb
+  875  c
+  876  sudo systemctl start influxdb
+  877  sudo systemctl enable influxdb
+  878  sudo systemctl status influxdb
+  879  c
+  880  influx
+  881  c
+  882  sudo apt install influxdb-client
+  883  c
+  884  influx
+  885  c
+  886  pyenv activate training_gpu 
+  887  pip install influxdb
+  888  /home/cc/.pyenv/versions/3.10.1/envs/training_gpu/bin/python -m pip install --upgrade pip
+  889  c
+  890  influx
+  891  c
+  892  influx
+  893  c
+  894  influx
+  895  c
+  896  cd MultiNodeEnergyTracker/
+  897  git pull
+  898  c
+  899  pyenv activate training_gpu 
+  900  ls
+  901  c
+  902  python query_database.py --start 1732500375.767951 --end 1732500391.780899
+  903  c
+  904  sudo perf stat -a -e power/energy-ram/ -e power/energy-pkg/ sleep 1
+  905  c
+  906  cd 
+  907  vim .ssh/authorized_keys 
+  908  c
+  909  cd MultiNodeEnergyTracker/
+  910  c
+  911  cc
+  912  sudo apt install python-pip3
+  913  sudo apt install python3-pip
+  914  pip3 install inluxdb-client
+  915  sudo apt install python3-pip
+  916  c
+  917  source deactivate
+  918  c
+  919  cd 
+  920  c
+  921  pip3 install influxdb-client
+  922  c
+  923  python3 /home/cc/MultiNodeEnergyTracker/query_database.py --start 1732499321.4836566 --end 1732499329.692882
+  924  pip install influxdb
+  925  c
+  926  python3 /home/cc/MultiNodeEnergyTracker/query_database.py --start 1732499321.4836566 --end 1732499329.692882
+  927  c
+  928  sudo perf stat -a -e power/energy-ram/ -e power/energy-pkg/ sleep 1
+  929  c
+  930  history | grep bmon
+  931  sudo bmon -p eno12399np0
+  932  c
+  933  history | grep local
+  934  c
+  935  sudo ./local_thr tcp://10.52.3.6:5555 1000000 100000
+  936  cd 
+  937  cd libzmq/
+  938  cd tools/
+  939  cd ../perf/
+  940  pwd
+  941  cd 
+  942  c
+  943  sudo /home/cc/libzmq/perf/local_thr tcp://10.52.3.6:5555 1000000 100000
+  944  c
+  945  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+  946  c
+  947  sudo /home/cc/libzmq/perf/local_thr tcp://10.52.3.6:5555 1000000 100000
+  948  c
+  949  sudo bmon -p eno12399np0
+  950  c
+  951  sudo /home/cc/libzmq/perf/local_thr tcp://10.52.3.6:5555 1000000 100000
+  952  sudo bmon -p eno12399np0
+  953  c
+  954  sudo /home/cc/libzmq/perf/local_thr tcp://10.52.3.6:5555 1000000 100000
+  955  c
+  956  screen -ls
+  957  cd 
+  958  cd MultiNodeEnergyTracker/
+  959  history | grep pythonc
+  960  c
+  961  history | grep python
+  962  c
+  963  sudo -E /home/cc/.pyenv/shims/python energy_agent_wo_gpu.py --node_id=storage1
+  964  pyenv activate training_gpu 
+  965  sudo -E /home/cc/.pyenv/shims/python energy_agent_wo_gpu.py --node_id=storage1
+  966  c
+  967  sudo -E /home/cc/.pyenv/shims/python energy_agent_wo_gpu.py --node_id=storage1
+  968  c
+  969  history
+  970  history > history_storage_1.txt
