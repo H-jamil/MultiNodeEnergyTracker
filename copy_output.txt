@@ -1,0 +1,9 @@
+cc@gpu2:~/MultiNodeEnergyTracker$ sudo -E /home/cc/.pyenv/shims/python ramdisk_copier.py /mnt/ramdisk/ /mnt/mycephfs/imagenet/selected_files_20GB_train.json --workers 8
+2024-12-09 22:02:05,916 - INFO - Starting copy operation with 8 workers
+2024-12-09 22:02:06,028 - INFO - Loaded 165859 files to copy
+Data copying Phase: Start Time = 1733781725.9162688, End Time = 1733781847.7907462, Duration = -121.87s
+2024-12-09 22:04:07,986 - INFO - Saved copied files list to: copied_files_20241209_220407.txt
+2024-12-09 22:04:07,986 - INFO - Copy operation completed in 121.87 seconds
+2024-12-09 22:04:07,986 - INFO - Total files copied: 165859
+
+

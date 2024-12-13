@@ -7,6 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
+# Set seed for reproducibility
 def set_seed(seed=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -23,7 +24,6 @@ class ImageNetKaggle(Dataset):
 
         print(f"[{time.time()}] Starting to load class index mapping...")
         load_class_index_start = time.time()
-        # Load class index mapping
         with open(os.path.join(root, "imagenet_class_index.json"), "r") as f:
             json_file = json.load(f)
             for class_id, v in json_file.items():
@@ -31,7 +31,6 @@ class ImageNetKaggle(Dataset):
         load_class_index_end = time.time()
         print(f"[{time.time()}] Finished loading class index mapping. Duration: {load_class_index_end - load_class_index_start:.2f}s.")
 
-        # Load validation labels if necessary
         if split == "val":
             print(f"[{time.time()}] Starting to load validation labels...")
             load_val_labels_start = time.time()
@@ -66,6 +65,12 @@ class ImageNetKaggle(Dataset):
                 self.samples.append(sample_path)
                 self.targets.append(target)
 
+        # Sort samples for deterministic ordering
+        sorted_pairs = sorted(zip(self.samples, self.targets), key=lambda x: x[0])
+        self.samples, self.targets = zip(*sorted_pairs)
+        self.samples = list(self.samples)
+        self.targets = list(self.targets)
+
         scan_end_time = time.time()
         print(f"[{time.time()}] Finished scanning samples. Total samples: {len(self.samples)}. Duration: {scan_end_time - scan_start_time:.2f}s.")
 
@@ -78,9 +83,12 @@ class ImageNetKaggle(Dataset):
             x = self.transform(x)
         return x, self.targets[idx]
 
+# Set seed for reproducibility
+set_seed(42)
+
 # Training Configuration
-batch_size = 128  # Set to 32, 64, or 128 as desired
-num_workers = 8  # Set to 0 to disable prefetching and control data loading timing
+batch_size = 128
+num_workers = 8
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[{time.time()}] {device} is used for training")
 
@@ -106,10 +114,8 @@ train_transform = transforms.Compose([
 # Dataset and DataLoader
 print(f"[{time.time()}] Creating dataset...")
 dataset_creation_start = time.time()
+dataset = ImageNetKaggle("/mnt/cached_data/imagenet", "train", train_transform)
 # dataset = ImageNetKaggle("/mnt/mycephfs/imagenet/", "train", train_transform)
-# dataset = ImageNetKaggle("/mnt/cached_data/imagenet", "train", train_transform)
-dataset = ImageNetKaggle("/mnt/ramdisk/mnt/mycephfs/imagenet/", "train", train_transform)
-
 dataset_creation_end = time.time()
 print(f"[{time.time()}] Dataset created. Duration: {dataset_creation_end - dataset_creation_start:.2f}s.")
 
@@ -119,55 +125,49 @@ dataloader = DataLoader(
     dataset,
     batch_size=batch_size,
     num_workers=num_workers,
-    shuffle=True,
+    shuffle=False,  # Disabled shuffling for deterministic ordering
     pin_memory=True
 )
 dataloader_creation_end = time.time()
 print(f"[{time.time()}] DataLoader created. Duration: {dataloader_creation_end - dataloader_creation_start:.2f}s.")
 
-Epoch = 1
+Epoch = 16
 target_iteration = 5
 data_loading_start_time = time.time()
-for _ in range(0, Epoch):
+for _ in range(0,Epoch):
     for batch_idx, (inputs, targets) in enumerate(dataloader):
-            # Measure data transfer time (CPU to GPU)
-            inputs = inputs.to(device, non_blocking=True)
-            targets = targets.to(device, non_blocking=True)
-            if batch_idx +1 >= target_iteration:
-                break
-data_loading_end_time = time.time()
-# data_transfer_time = data_transfer_end - data_transfer_start
+        inputs = inputs.to(device, non_blocking=True)
+        targets = targets.to(device, non_blocking=True)
+        if batch_idx + 1 >= target_iteration:
+            break
 
+data_loading_end_time = time.time()
 
 inputs_list = []
 targets_list = []
-# output_list = []
 dataloader = DataLoader(
     dataset,
     batch_size=batch_size,
     num_workers=num_workers,
-    shuffle=True,
+    shuffle=False,  # Disabled shuffling for deterministic ordering
     pin_memory=True
 )
 
 model.to(device)            
 model.train()
 for batch_idx, (inputs, targets) in enumerate(dataloader):
-        # Measure data transfer time (CPU to GPU)
-        inputs = inputs.to(device, non_blocking=True)
-        targets = targets.to(device, non_blocking=True)
-        inputs_list.append(inputs)
-        targets_list.append(targets)
-        if batch_idx <target_iteration:
-            continue
-        else:
-            break
+    inputs = inputs.to(device, non_blocking=True)
+    targets = targets.to(device, non_blocking=True)
+    inputs_list.append(inputs)
+    targets_list.append(targets)
+    if batch_idx < target_iteration:
+        continue
+    else:
+        break
 
-
-
-forward_backward_pass_start_time= time.time()
+forward_backward_pass_start_time = time.time()
 for i in range(len(inputs_list)):
-    inputs = inputs_list [i]
+    inputs = inputs_list[i]
     targets = targets_list[i]
     torch.cuda.synchronize()
     outputs = model(inputs)
@@ -178,30 +178,12 @@ for i in range(len(inputs_list)):
     optimizer.step()
     torch.cuda.synchronize()
 
-forward_backward_pass_end_time= time.time()
-
-# backward_pass_start_time = time.time()
-# for i in range(len(output_list)):
-#     outputs = output_list[i]
-#     targets = targets_list[i]
-#     torch.cuda.synchronize()
-#     loss = criterion(outputs, targets)
-#     optimizer.zero_grad()
-#     # Backward pass
-#     torch.cuda.synchronize()
-#     loss.backward()
-#     optimizer.step()
-#     torch.cuda.synchronize()
-# backward_pass_end_time = time.time()
+forward_backward_pass_end_time = time.time()
 
 print(f"Data Loading Phase: Start Time = {data_loading_start_time}, "
       f"End Time = {data_loading_end_time}, "
       f"Duration = {round((data_loading_end_time - data_loading_start_time),2)}s")
 
-print (f"ForwardBackward Pass phase: Start Time = {forward_backward_pass_start_time}, "
+print(f"ForwardBackward Pass phase: Start Time = {forward_backward_pass_start_time}, "
       f"End Time = {forward_backward_pass_end_time}, "
       f"Duration = {round((forward_backward_pass_end_time - forward_backward_pass_start_time),2)}s")
-
-# print (f"Backward Pass phase: Start Time = {backward_pass_start_time}, "
-#       f"End Time = {backward_pass_end_time}, "
-#       f"Duration = {round((backward_pass_end_time - backward_pass_start_time),2)}s")

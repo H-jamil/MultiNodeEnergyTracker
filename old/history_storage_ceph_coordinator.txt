@@ -1427,3 +1427,154 @@
   968  c
   969  history
   970  history > history_storage_1.txt
+
+
+
+################following is the latest
+##################
+
+  43  sudo apt install -y ceph-common
+   44  sudo apt install docker-io
+   45  sudo apt install docker.io
+   46  sudo apt upgrade
+   47  sudo apt install -y wget build-essential linux-headers-$(uname -r)
+   48  c
+   49  sudo apt install ceph-deploy
+   50  c
+   51  sudo cephadm bootstrap --mon-ip 10.52.2.190 --initial-dashboard-password "274789" --allow-fqdn-hostname --ssh-user cc --ssh-private-key /home/cc/.ssh/id_rsa --ssh-public-key /home/cc/.ssh/id_rsa.pub
+   52  cd
+   53  cd /etc/ceph/
+   54  cat ceph.conf
+   55  sudo ceph -s
+   56  sudo /usr/sbin/cephadm shell
+   57  iperf3
+   58  sudo apt install iperf3
+   59  iperf3 -c 10.52.0.10
+   60  iperf3 -c 10.52.3.86
+   61  ls
+   62  ap a
+   63  ip a
+   64  iperf3 -c 10.52.3.86
+   65  c
+   66  ip a
+   67  iperf3 -s
+   68  c
+   69  sudo firewall-cmd --zone=trusted --add-source=10.52.0.0/22
+   70  iperf3 -s
+   71  c
+   72  iperf3 -s
+   73  iperf3 -c 10.52.3.86
+   74  dns -a
+   75  c
+   76  cd
+   77  sudo ceph orch host ls
+   78  sudo ceph orch host add storage-1 10.52.3.86
+   79  sudo ceph orch host ls
+   80  sudo ceph orch device ls
+   81  c
+   82  sudo ceph orch apply osd --all-available-devices
+   83  sudo ceph -s
+   84  watch -n1 "sudo ceph -s"
+   85  sudo ceph -s
+   86  c
+   87  sudo ceph -s
+   88  sudo ceph osd pool create cephfs_data 32
+   89  sudo ceph osd pool create cephfs_metadata 32
+   90  sudo ceph fs new mycephfs cephfs_metadata cephfs_data
+   91  ceph osd pool set cephfs_data bulk true
+   92  c
+   93  sudo ceph -s
+   94  sudo ceph osd pool set cephfs_data bulk true
+   95  c
+   96  sudo ceph -s
+   97  sudo ceph orch device ls
+   98  c
+   99  sudo ceph osd tree
+  100  c
+  101  sudo ceph -s
+  102  sudo ceph fs new mycephfs cephfs_metadata cephfs_data
+  103  c
+  104  sudo ceph -s
+  105  sudo ceph mds stat
+  106  sudo ceph orch apply mds mycephfs --placement="2"
+  107  c
+  108  sudo ceph osd pool get cephfs_data size
+  109  sudo ceph osd pool get cephfs_metadata size
+  110  sudo ceph osd pool set cephfs_data size 2
+  111  sudo ceph osd pool set cephfs_metadata size 2
+  112  sudo ceph -s
+  113  c
+  114  sudo ceph fs status mycephfs
+  115  c
+  116  sudo ceph mds stat
+  117  sudo ceph -s
+  118  c
+  119  sudo ceph osd pool ls detail
+  120  sudo ceph osd pool set cephfs_data size 2
+  121  sudo ceph osd pool set cephfs_metadata size 2
+  122  sudo ceph osd pool set cephfs_data min_size 1
+  123  sudo ceph osd pool set cephfs_metadata min_size 1
+  124  sudo ceph -s
+  125  c
+  126  sudo ceph -s
+  127  c
+  128  sudo ceph -s
+  129  sudo ceph fs status mycephfs
+  130  sudo ceph -s
+  131  sudo ceph osd pool set cephfs_data pg_autoscale_mode on
+  132  sudo ceph osd pool set cephfs_metadata pg_autoscale_mode on
+  133  c
+  134  sudo ceph -s
+  135  ls
+  136  scp -r ceph/ cc@gpu1:~/
+  137  cat .ssh/id_rsa.pub
+  138  scp -r ceph/ cc@gpu1:~/
+  139  c
+  140  sudo scp /etc/ceph/ceph.conf cc@10.52.0.10:/etc/ceph/
+  141  sudo scp /etc/ceph/ceph.conf cc@10.52.0.10:/home/cc/
+  142  sudo scp /etc/ceph/ceph.conf cc@gpu1:/home/cc/
+  143  ssh cc@gpu1
+  144  sudo scp -r /etc/ceph/ceph.conf  cc@gpu1:~/
+  145  cd /etc/ceph/
+  146  cat ceph.conf
+  147  sudo ceph -s
+  148  cat ceph.conf
+  149  c
+  150  cd
+  151  sudo ceph auth get-key client.admin | ssh cc@10.52.0.10 "sudo tee /etc/ceph/admin.key"
+  152  cd
+  153  cd /etc/ceph/
+  154  cat ceph.conf
+  155  sudo ceph auth get-key client.admin | ssh cc@10.52.3.86 "sudo tee /etc/ceph/admin.key"
+  156  c
+  157  sudo ceph auth get-or-create client.admin > /tmp/ceph.client.admin.keyring
+  158  ls
+  159  sudo scp /tmp/ceph.client.admin.keyring cc@10.52.3.86:/home/cc/
+  160  cp /tmp/ceph.client.admin.keyring ~/ceph.client.admin.keyring.tmp
+  161  cd
+  162  mv ceph.client.admin.keyring.tmp ceph.client.admin.keyring
+  163  scp ceph.client.admin.keyring cc@storage-1:~/
+  164  c
+  165  sudo ceph auth get-key client.admin | sudo tee /tmp/admin.key
+  166  sudo scp /tmp/admin.key cc@10.52.3.86:/home/cc/
+  167  sudo ceph -s
+  168  c
+  169  sudo ceph mgr stat
+  170  sudo ceph mon stat
+  171  cd /mnt/
+  172  sudo mkdir -p /mnt/cephfs
+  173  sudo mount -t ceph storage-manager:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+  174  ls
+  175  cd
+  176  cd /etc/ceph/
+  177  cd /tmp/
+  178  cat admin.key
+  179  sudo cp admin.key /etc/ceph/
+  180  cd
+  181  c
+  182  sudo mount -t ceph storage-manager:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.secret
+  183  cd /etc/ceph/
+  184  sudo mount -t ceph storage-manager:6789:/ /mnt/cephfs -o name=admin,secretfile=/etc/ceph/admin.key
+  185  cd /mnt/
+  186  cd cephfs/
+  187  cat testfile
