@@ -1,0 +1,7 @@
+gpuk80-1 
+gpuk80-2 
+gpum40-1 
+gpum40-2 
+gpup100-1
+gpup100-2
+
