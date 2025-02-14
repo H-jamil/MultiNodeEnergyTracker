@@ -38,14 +38,14 @@ def get_dataset():
     ])
     
     dataset = torchvision.datasets.ImageFolder(
-        root='/home/cc/imagenet/ILSVRC/Data/CLS-LOC/train',
+        root='/home/cc/train/',
         transform=transform
     )
     return dataset
 
 def main(rank, world_size):
     # Initialize distributed training
-    os.environ['MASTER_ADDR'] = '10.52.0.10'  # Replace with actual IP
+    os.environ['MASTER_ADDR'] = '10.52.0.117'  # Replace with actual IP
     os.environ['MASTER_PORT'] = '12355'
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
     
@@ -76,5 +76,7 @@ def main(rank, world_size):
 
 if __name__ == "__main__":
     world_size = 2  # total number of processes
-    rank = int(os.environ['RANK'])  # process rank
+    # rank = int(os.environ['RANK'])  # process rank
+    # os.environ['RANK'] = 1
+    rank = int(os.environ['RANK'])
     main(rank, world_size)

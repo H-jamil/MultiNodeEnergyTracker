@@ -106,9 +106,7 @@ train_transform = transforms.Compose([
 # Dataset and DataLoader
 print(f"[{time.time()}] Creating dataset...")
 dataset_creation_start = time.time()
-# dataset = ImageNetKaggle("/mnt/mycephfs/imagenet/", "train", train_transform)
-# dataset = ImageNetKaggle("/mnt/cached_data/imagenet", "train", train_transform)
-dataset = ImageNetKaggle("/mnt/ramdisk/mnt/mycephfs/imagenet/", "train", train_transform)
+dataset = ImageNetKaggle("/home/cc/train/", "train", train_transform)
 
 dataset_creation_end = time.time()
 print(f"[{time.time()}] Dataset created. Duration: {dataset_creation_end - dataset_creation_start:.2f}s.")
